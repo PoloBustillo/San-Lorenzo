@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: san-lorenzo-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: sanlorenzo
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sanlorenzo"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: san-lorenzo-app
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/sanlorenzo?schema=public
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-cambiar-en-produccion}
+      NEXTAUTH_URL: http://localhost:3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+    command: sh -c "npx prisma migrate deploy && npx prisma db seed && npm run dev"
+
+volumes:
+  postgres_data:
