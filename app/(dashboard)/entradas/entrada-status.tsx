@@ -42,7 +42,7 @@ export function EntradaStatus({
       disabled={isPending || estatus === 'Entregado'}
     >
       <SelectTrigger className="w-40">
-        <SelectValue />
+        <SelectValue>{(value: string | null) => value ? getEstatusLabel(value) : ''}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {opciones.map((e) => (

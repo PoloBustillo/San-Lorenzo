@@ -62,7 +62,13 @@ export function ArmadoFilters({
           onValueChange={(value) => updateParam('proveedor', value ?? '')}
         >
           <SelectTrigger className="w-48">
-            <SelectValue placeholder="Todos" />
+            <SelectValue placeholder="Todos">
+              {(value: string | null) =>
+                value
+                  ? proveedores.find((p) => p.id === value)?.nombre ?? 'Todos'
+                  : 'Todos'
+              }
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="">Todos</SelectItem>

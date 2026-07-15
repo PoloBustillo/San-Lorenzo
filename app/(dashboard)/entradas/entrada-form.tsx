@@ -38,6 +38,7 @@ export function EntradaForm({
   const [medida, setMedida] = useState<string>(
     entrada?.medida ?? MEDIDAS_POR_MATERIAL[MATERIALES[0]][0]
   )
+  const [proveedorId, setProveedorId] = useState<string>(entrada?.proveedorId ?? '')
   const [isPending, startTransition] = useTransition()
 
   const medidas = MEDIDAS_POR_MATERIAL[material as keyof typeof MEDIDAS_POR_MATERIAL]
@@ -61,6 +62,7 @@ export function EntradaForm({
           ref.current?.reset()
           setMaterial(MATERIALES[0])
           setMedida(MEDIDAS_POR_MATERIAL[MATERIALES[0]][0])
+          setProveedorId('')
         }
         onSuccess?.()
       } else {
@@ -87,9 +89,20 @@ export function EntradaForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="proveedorId">Proveedor / Cliente</Label>
-        <Select name="proveedorId" defaultValue={entrada?.proveedorId} required>
+        <Select
+          name="proveedorId"
+          value={proveedorId}
+          onValueChange={(value) => setProveedorId(value ?? '')}
+          required
+        >
           <SelectTrigger className="w-full">
-            <SelectValue placeholder="Selecciona" />
+            <SelectValue placeholder="Selecciona">
+              {(value: string | null) =>
+                value
+                  ? proveedores.find((p) => p.id === value)?.nombre ?? 'Selecciona'
+                  : 'Selecciona'
+              }
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             {proveedores.map((p) => (

@@ -49,7 +49,11 @@ export function EntradaFilters({ materiales }: { materiales: readonly string[] }
         <Label htmlFor="estatus">Estatus</Label>
         <Select name="estatus" defaultValue={searchParams.get('estatus') ?? ''}>
           <SelectTrigger className="w-44">
-            <SelectValue placeholder="Todos" />
+            <SelectValue placeholder="Todos">
+              {(value: string | null) =>
+                value ? getEstatusLabel(value) : 'Todos'
+              }
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="">Todos</SelectItem>

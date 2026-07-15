@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { ResponsiveTable } from '@/components/responsive-table'
 import { toast } from 'sonner'
 
 type EntradaDisponible = Awaited<ReturnType<typeof obtenerEntradasDisponibles>>[number]
@@ -99,7 +100,7 @@ export function SalidaForm({ salida, trigger }: { salida?: SalidaEdit; trigger?:
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={trigger ?? <Button>{isEditing ? 'Editar' : 'Nueva salida'}</Button>} />
-      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] max-w-6xl overflow-y-auto">
         <form action={handleSubmit}>
           <DialogHeader>
             <DialogTitle>{isEditing ? 'Editar salida' : 'Nueva salida'}</DialogTitle>
@@ -136,7 +137,7 @@ export function SalidaForm({ salida, trigger }: { salida?: SalidaEdit; trigger?:
               />
             </div>
 
-            <div className="rounded-md border">
+            <ResponsiveTable>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -182,7 +183,7 @@ export function SalidaForm({ salida, trigger }: { salida?: SalidaEdit; trigger?:
                   ))}
                 </TableBody>
               </Table>
-            </div>
+            </ResponsiveTable>
 
             <p className="text-sm text-muted-foreground">
               Seleccionados: {selected.size} bancos — {pesoTotal.toFixed(2)} KG
