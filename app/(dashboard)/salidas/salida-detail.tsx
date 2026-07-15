@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useTransition } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -18,6 +19,10 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { quitarEntradaDeSalida } from '@/app/actions/inventario'
+import { getEstatusLabel, getEstatusBadgeVariant } from '@/lib/utils'
+import { toast } from 'sonner'
+import { X } from 'lucide-react'
 
 type SalidaConEntradas = {
   id: string
@@ -35,11 +40,25 @@ type SalidaConEntradas = {
 }
 
 export function SalidaDetail({ salida }: { salida: SalidaConEntradas }) {
+  const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
   const pesoTotal = salida.entradas.reduce((sum, e) => sum + e.pesoKg, 0)
   const fecha = new Date(salida.fecha)
 
+  function handleQuitar(entradaId: string) {
+    startTransition(async () => {
+      const result = await quitarEntradaDeSalida(salida.id, entradaId)
+      if (result.success) {
+        toast.success('Banco regresado a inventario')
+        setOpen(false)
+      } else {
+        toast.error(result.error || 'Error al quitar banco')
+      }
+    })
+  }
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
         render={
           <Button variant="outline" size="sm">
@@ -47,7 +66,7 @@ export function SalidaDetail({ salida }: { salida: SalidaConEntradas }) {
           </Button>
         }
       />
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>SALIDA {salida.numero}</DialogTitle>
           <DialogDescription>
@@ -65,6 +84,7 @@ export function SalidaDetail({ salida }: { salida: SalidaConEntradas }) {
                 <TableHead>Peso KG</TableHead>
                 <TableHead>Proveedor</TableHead>
                 <TableHead>Estatus</TableHead>
+                <TableHead className="w-16"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -76,9 +96,21 @@ export function SalidaDetail({ salida }: { salida: SalidaConEntradas }) {
                   <TableCell>{e.pesoKg.toFixed(2)}</TableCell>
                   <TableCell>{e.proveedor.nombre}</TableCell>
                   <TableCell>
-                    <Badge variant={e.estatus === 'EnInventario' ? 'default' : 'secondary'}>
-                      {e.estatus === 'EnInventario' ? 'En inventario' : 'Entregado'}
+                    <Badge variant={getEstatusBadgeVariant(e.estatus)}>
+                      {getEstatusLabel(e.estatus)}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive hover:text-destructive"
+                      disabled={isPending}
+                      onClick={() => handleQuitar(e.id)}
+                      title="Quitar de la salida y regresar a inventario"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

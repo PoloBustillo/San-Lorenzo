@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { getEstatusLabel } from '@/lib/utils'
 
 export function EntradaFilters({ materiales }: { materiales: readonly string[] }) {
   const router = useRouter()
@@ -47,13 +48,14 @@ export function EntradaFilters({ materiales }: { materiales: readonly string[] }
       <div className="space-y-2">
         <Label htmlFor="estatus">Estatus</Label>
         <Select name="estatus" defaultValue={searchParams.get('estatus') ?? ''}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-44">
             <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="">Todos</SelectItem>
-            <SelectItem value="EnInventario">En inventario</SelectItem>
-            <SelectItem value="Entregado">Entregado</SelectItem>
+            <SelectItem value="EnInventario">{getEstatusLabel('EnInventario')}</SelectItem>
+            <SelectItem value="EnPreparacion">{getEstatusLabel('EnPreparacion')}</SelectItem>
+            <SelectItem value="Entregado">{getEstatusLabel('Entregado')}</SelectItem>
           </SelectContent>
         </Select>
       </div>

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { MATERIALES, MEDIDAS_POR_MATERIAL } from '@/lib/constants'
+import { ESTATUS_INVENTARIO } from '@/lib/utils'
 
 function getWeek(date: Date): number {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
@@ -220,12 +221,54 @@ export async function actualizarEntrada(id: string, formData: FormData): Promise
   }
 }
 
+export async function cambiarEstatusEntrada(
+  id: string,
+  estatus: string
+): Promise<ActionResult> {
+  try {
+    await checkAuth()
+
+    if (!['EnInventario', 'EnPreparacion', 'Entregado'].includes(estatus)) {
+      return { success: false, error: 'Estatus inválido' }
+    }
+
+    if (estatus === 'Entregado') {
+      return { success: false, error: 'El estatus Entregado solo se asigna desde una salida' }
+    }
+
+    const entrada = await prisma.entrada.findUnique({ where: { id } })
+    if (!entrada) return { success: false, error: 'Entrada no encontrada' }
+
+    const statusValue = estatus as import('@prisma/client').Estatus
+
+    if (entrada.salidaId) {
+      await prisma.entrada.update({
+        where: { id },
+        data: { estatus: statusValue, salidaId: null },
+      })
+    } else {
+      await prisma.entrada.update({ where: { id }, data: { estatus: statusValue } })
+    }
+
+    revalidatePath('/entradas')
+    revalidatePath('/inventario')
+    revalidatePath('/salidas')
+    revalidatePath('/reportes/tacon')
+    revalidatePath('/reportes/lena')
+    revalidatePath('/reportes/armado')
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error al cambiar estatus'
+    return { success: false, error: message }
+  }
+}
+
 export async function obtenerEntradasDisponibles() {
   const session = await auth()
   if (!session) throw new Error('No autorizado')
 
   return prisma.entrada.findMany({
-    where: { estatus: 'EnInventario' },
+    where: { estatus: { in: ESTATUS_INVENTARIO } },
     include: { proveedor: true },
     orderBy: { fecha: 'desc' },
   })
@@ -248,7 +291,7 @@ export async function crearSalida(formData: FormData): Promise<ActionResult> {
     }
 
     const disponibles = await prisma.entrada.findMany({
-      where: { id: { in: entradaIds }, estatus: 'EnInventario' },
+      where: { id: { in: entradaIds }, estatus: { in: ESTATUS_INVENTARIO } },
       select: { id: true },
     })
 
@@ -311,7 +354,7 @@ export async function actualizarSalida(id: string, formData: FormData): Promise<
 
       // Validar nuevas entradas disponibles
       const disponibles = await tx.entrada.findMany({
-        where: { id: { in: entradaIds }, estatus: 'EnInventario' },
+        where: { id: { in: entradaIds }, estatus: { in: ESTATUS_INVENTARIO } },
         select: { id: true },
       })
 
@@ -357,6 +400,42 @@ export async function eliminarSalida(id: string): Promise<ActionResult> {
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error al eliminar salida'
+    return { success: false, error: message }
+  }
+}
+
+export async function quitarEntradaDeSalida(
+  salidaId: string,
+  entradaId: string
+): Promise<ActionResult> {
+  try {
+    await checkAuth()
+
+    await prisma.$transaction(async (tx) => {
+      const entrada = await tx.entrada.findFirst({
+        where: { id: entradaId, salidaId },
+      })
+      if (!entrada) throw new Error('El banco no pertenece a esta salida')
+
+      await tx.entrada.update({
+        where: { id: entradaId },
+        data: { estatus: 'EnInventario', salidaId: null },
+      })
+
+      const restantes = await tx.entrada.count({ where: { salidaId } })
+      if (restantes === 0) {
+        await tx.salida.delete({ where: { id: salidaId } })
+      }
+    })
+
+    revalidatePath('/salidas')
+    revalidatePath('/entradas')
+    revalidatePath('/inventario')
+    revalidatePath('/reportes/tacon')
+    revalidatePath('/reportes/lena')
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error al quitar banco'
     return { success: false, error: message }
   }
 }

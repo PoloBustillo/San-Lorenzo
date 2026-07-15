@@ -10,14 +10,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { MATERIALES } from '@/lib/constants'
 import { ResponsiveTable } from '@/components/responsive-table'
+import { getEstatusLabel } from '@/lib/utils'
 import { EntradaForm } from './entrada-form'
 import { EntradaFilters } from './entrada-filters'
 import { EntradaEdit } from './entrada-edit'
 import { EntradaDelete } from './entrada-delete'
+import { EntradaStatus } from './entrada-status'
 import { cn } from '@/lib/utils'
 
 const PAGE_SIZE = 20
@@ -33,7 +34,7 @@ export default async function EntradasPage({
   const params = await searchParams
   const page = Math.max(1, Number(params.page ?? 1))
   const materialFilter = params.material
-  const estatusFilter = params.estatus as 'EnInventario' | 'Entregado' | undefined
+  const estatusFilter = params.estatus as 'EnInventario' | 'EnPreparacion' | 'Entregado' | undefined
 
   const where = {
     ...(materialFilter && { material: materialFilter }),
@@ -119,17 +120,11 @@ export default async function EntradasPage({
                     <TableCell>{e.medida}</TableCell>
                     <TableCell>{e.pesoKg.toFixed(2)}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
-                          e.estatus === 'EnInventario' ? 'default' : 'secondary'
-                        }
-                      >
-                        {e.estatus === 'EnInventario' ? 'En inventario' : 'Entregado'}
-                      </Badge>
+                      <EntradaStatus id={e.id} estatus={e.estatus} />
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        {e.estatus === 'EnInventario' && (
+                        {(e.estatus === 'EnInventario' || e.estatus === 'EnPreparacion') && (
                           <EntradaEdit entrada={e} proveedores={proveedores} />
                         )}
                         <EntradaDelete id={e.id} disabled={e.estatus === 'Entregado'} />

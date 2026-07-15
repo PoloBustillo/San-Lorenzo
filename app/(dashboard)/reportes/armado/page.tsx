@@ -16,6 +16,7 @@ import { ArmadoFilters } from './armado-filters'
 import { ArmadoExport } from './armado-export'
 import { ResponsiveTable } from '@/components/responsive-table'
 import { MATERIALES, obtenerCodigoProducto } from '@/lib/constants'
+import { ESTATUS_INVENTARIO } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
 export default async function ArmadoPage({
@@ -29,7 +30,7 @@ export default async function ArmadoPage({
   const params = await searchParams
 
   const where = {
-    estatus: 'EnInventario' as const,
+    estatus: { in: ESTATUS_INVENTARIO },
     ...(params.proveedor && { proveedorId: params.proveedor }),
     ...(params.material && { material: params.material }),
     ...(params.medida && { medida: params.medida }),

@@ -52,6 +52,7 @@ model Entrada {
 
 enum Estatus {
   EnInventario
+  EnPreparacion
   Entregado
 }
 

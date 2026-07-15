@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/select'
 import { MATERIALES, obtenerCodigoProducto } from '@/lib/constants'
 import { ResponsiveTable } from '@/components/responsive-table'
+import { ESTATUS_INVENTARIO } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 
 export default async function InventarioPage({
@@ -35,7 +36,7 @@ export default async function InventarioPage({
 
   const entradas = await prisma.entrada.findMany({
     where: {
-      estatus: 'EnInventario',
+      estatus: { in: ESTATUS_INVENTARIO },
       ...(materialFilter && { material: materialFilter }),
     },
   })

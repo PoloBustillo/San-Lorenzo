@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { prisma } from '@/lib/prisma'
 import { Package, ArrowDownLeft, ArrowUpRight, Users } from 'lucide-react'
+import { ESTATUS_INVENTARIO } from '@/lib/utils'
 
 export default async function HomePage() {
   const session = await auth()
@@ -11,7 +12,7 @@ export default async function HomePage() {
   const totalEntradas = await prisma.entrada.count()
   const totalSalidas = await prisma.salida.count()
   const enInventario = await prisma.entrada.count({
-    where: { estatus: 'EnInventario' },
+    where: { estatus: { in: ESTATUS_INVENTARIO } },
   })
   const totalProveedores = await prisma.proveedor.count()
 

@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/table'
 import { MATERIALES_LENA, obtenerCodigoProducto } from '@/lib/constants'
 import { ResponsiveTable } from '@/components/responsive-table'
+import { ESTATUS_INVENTARIO } from '@/lib/utils'
 
 export default async function ReporteLenaPage() {
   const session = await auth()
@@ -19,7 +20,7 @@ export default async function ReporteLenaPage() {
 
   const entradas = await prisma.entrada.findMany({
     where: {
-      estatus: 'EnInventario',
+      estatus: { in: ESTATUS_INVENTARIO },
       material: { in: MATERIALES_LENA },
     },
   })

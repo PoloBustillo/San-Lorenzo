@@ -23,6 +23,7 @@ import {
   Users,
   Upload,
 } from 'lucide-react'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -69,8 +70,8 @@ export function Navbar({ user }: { user: { name?: string | null; email?: string 
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4 md:px-6">
+        <div className="flex items-center gap-3">
           <Sheet>
             <SheetTrigger
               render={
@@ -162,11 +163,12 @@ export function Navbar({ user }: { user: { name?: string | null; email?: string 
           )}
         </nav>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           <div className="hidden text-sm md:block">
             <p className="font-medium leading-none">{user.name || user.email}</p>
             <p className="text-xs text-muted-foreground">{user.role}</p>
           </div>
+          <ThemeToggle />
           <Button variant="ghost" size="icon" onClick={() => signOut({ callbackUrl: '/login' })}>
             <LogOut className="h-4 w-4" />
             <span className="sr-only">Cerrar sesión</span>
