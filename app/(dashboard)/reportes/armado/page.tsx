@@ -11,10 +11,12 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { Button, buttonVariants } from '@/components/ui/button'
 import { ArmadoFilters } from './armado-filters'
 import { ArmadoExport } from './armado-export'
+import { ResponsiveTable } from '@/components/responsive-table'
 import { MATERIALES, obtenerCodigoProducto } from '@/lib/constants'
+import { cn } from '@/lib/utils'
 
 export default async function ArmadoPage({
   searchParams,
@@ -85,9 +87,9 @@ export default async function ArmadoPage({
         </div>
         <div className="flex items-center gap-2">
           <ArmadoExport grupos={grupos} />
-          <Button>
-            <a href="/salidas">Ir a Salidas</a>
-          </Button>
+          <a href="/salidas" className={cn(buttonVariants({ variant: 'default' }))}>
+            Ir a Salidas
+          </a>
         </div>
       </div>
 
@@ -132,7 +134,7 @@ export default async function ArmadoPage({
           <CardTitle>Bancos agrupados</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <ResponsiveTable>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -175,7 +177,7 @@ export default async function ArmadoPage({
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </ResponsiveTable>
         </CardContent>
       </Card>
     </div>

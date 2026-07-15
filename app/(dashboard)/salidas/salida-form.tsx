@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useTransition } from 'react'
-import { crearSalida, obtenerEntradasDisponibles } from '@/app/actions/inventario'
+import { crearSalida, actualizarSalida, obtenerEntradasDisponibles } from '@/app/actions/inventario'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -26,25 +26,44 @@ import { toast } from 'sonner'
 
 type EntradaDisponible = Awaited<ReturnType<typeof obtenerEntradasDisponibles>>[number]
 
-export function SalidaForm() {
+type SalidaEdit = {
+  id: string
+  fecha: Date
+  entradas: { id: string; banco: string; material: string; medida: string; pesoKg: number; proveedor: { nombre: string } }[]
+}
+
+export function SalidaForm({ salida, trigger }: { salida?: SalidaEdit; trigger?: React.ReactElement }) {
   const [open, setOpen] = useState(false)
   const [entradas, setEntradas] = useState<EntradaDisponible[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState('')
   const [isPending, startTransition] = useTransition()
+  const isEditing = Boolean(salida)
 
   useEffect(() => {
     if (!open) return
     obtenerEntradasDisponibles()
       .then((data) => {
         setEntradas(data)
-        setSelected(new Set())
+        if (salida) {
+          const seleccionadas = new Set(salida.entradas.map((e) => e.id))
+          setSelected(seleccionadas)
+        } else {
+          setSelected(new Set())
+        }
         setSearch('')
       })
       .catch(() => toast.error('Error al cargar entradas disponibles'))
-  }, [open])
+  }, [open, salida])
 
-  const filtered = entradas.filter(
+  const todasLasEntradas = isEditing
+    ? [
+        ...entradas,
+        ...salida!.entradas.filter((se) => !entradas.some((e) => e.id === se.id)),
+      ]
+    : entradas
+
+  const filtered = todasLasEntradas.filter(
     (e) =>
       e.banco.toLowerCase().includes(search.toLowerCase()) ||
       e.material.toLowerCase().includes(search.toLowerCase()) ||
@@ -61,29 +80,33 @@ export function SalidaForm() {
   async function handleSubmit(formData: FormData) {
     selected.forEach((id) => formData.append('entradaIds', id))
     startTransition(async () => {
-      const result = await crearSalida(formData)
+      const result = isEditing
+        ? await actualizarSalida(salida!.id, formData)
+        : await crearSalida(formData)
       if (result.success) {
-        toast.success('Salida registrada')
+        toast.success(isEditing ? 'Salida actualizada' : 'Salida registrada')
         setOpen(false)
       } else {
-        toast.error(result.error || 'Error al registrar salida')
+        toast.error(result.error || 'Error al guardar salida')
       }
     })
   }
 
-  const pesoTotal = entradas
+  const pesoTotal = todasLasEntradas
     .filter((e) => selected.has(e.id))
     .reduce((sum, e) => sum + e.pesoKg, 0)
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button>Nueva salida</Button>} />
+      <DialogTrigger render={trigger ?? <Button>{isEditing ? 'Editar' : 'Nueva salida'}</Button>} />
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
         <form action={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Nueva salida</DialogTitle>
+            <DialogTitle>{isEditing ? 'Editar salida' : 'Nueva salida'}</DialogTitle>
             <DialogDescription>
-              Selecciona las entradas en inventario que se entregarán.
+              {isEditing
+                ? 'Modifica la fecha y los bancos de la salida.'
+                : 'Selecciona las entradas en inventario que se entregarán.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -94,7 +117,11 @@ export function SalidaForm() {
                 id="fecha-salida"
                 name="fecha"
                 type="date"
-                defaultValue={new Date().toISOString().split('T')[0]}
+                defaultValue={
+                  salida
+                    ? salida.fecha.toISOString().split('T')[0]
+                    : new Date().toISOString().split('T')[0]
+                }
                 required
               />
             </div>
@@ -167,7 +194,7 @@ export function SalidaForm() {
               type="submit"
               disabled={isPending || selected.size === 0}
             >
-              {isPending ? 'Guardando...' : 'Guardar salida'}
+              {isPending ? 'Guardando...' : isEditing ? 'Actualizar salida' : 'Guardar salida'}
             </Button>
           </DialogFooter>
         </form>

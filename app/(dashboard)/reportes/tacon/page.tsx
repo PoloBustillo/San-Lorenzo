@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { MATERIALES_TACON, obtenerCodigoProducto } from '@/lib/constants'
+import { ResponsiveTable } from '@/components/responsive-table'
 
 export default async function ReporteTaconPage() {
   const session = await auth()
@@ -75,7 +76,7 @@ export default async function ReporteTaconPage() {
           <CardTitle>Detalle por código</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <ResponsiveTable>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -105,7 +106,7 @@ export default async function ReporteTaconPage() {
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </ResponsiveTable>
         </CardContent>
       </Card>
     </div>

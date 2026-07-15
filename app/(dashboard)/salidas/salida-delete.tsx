@@ -1,22 +1,20 @@
 'use client'
 
 import { useTransition } from 'react'
-import { eliminarProveedor } from '@/app/actions/inventario'
+import { eliminarSalida } from '@/app/actions/inventario'
 import { Button } from '@/components/ui/button'
 import { Trash2 } from 'lucide-react'
 import { ConfirmModal } from '@/components/confirm-modal'
 import { toast } from 'sonner'
 
-export function ProveedorDelete({ id, isAdmin }: { id: string; isAdmin: boolean }) {
+export function SalidaDelete({ id }: { id: string }) {
   const [isPending, startTransition] = useTransition()
-
-  if (!isAdmin) return null
 
   async function handleConfirm() {
     startTransition(async () => {
-      const result = await eliminarProveedor(id)
+      const result = await eliminarSalida(id)
       if (result.success) {
-        toast.success('Proveedor eliminado')
+        toast.success('Salida eliminada. Los bancos volvieron a inventario.')
       } else {
         toast.error(result.error || 'Error al eliminar')
       }
@@ -25,8 +23,8 @@ export function ProveedorDelete({ id, isAdmin }: { id: string; isAdmin: boolean 
 
   return (
     <ConfirmModal
-      title="Eliminar proveedor"
-      description="¿Estás seguro? No se puede eliminar si tiene entradas registradas."
+      title="Eliminar salida"
+      description="¿Estás seguro? Los bancos volverán a estar disponibles en inventario."
       confirmText="Eliminar"
       variant="destructive"
       onConfirm={handleConfirm}

@@ -56,6 +56,32 @@ export async function eliminarProveedor(id: string): Promise<ActionResult> {
   }
 }
 
+export async function actualizarProveedor(id: string, formData: FormData): Promise<ActionResult> {
+  try {
+    await checkAuth()
+    const nombre = String(formData.get('nombre') ?? '').trim()
+    const tipo = String(formData.get('tipo') ?? '') as 'CLIENTE' | 'PROVEEDOR'
+
+    if (!nombre) return { success: false, error: 'El nombre es requerido' }
+    if (!['CLIENTE', 'PROVEEDOR'].includes(tipo)) {
+      return { success: false, error: 'Tipo de proveedor inválido' }
+    }
+
+    await prisma.proveedor.update({
+      where: { id },
+      data: { nombre, tipo },
+    })
+    revalidatePath('/proveedores')
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error al actualizar proveedor'
+    if (message.includes('Unique constraint')) {
+      return { success: false, error: 'Ya existe un proveedor con ese nombre' }
+    }
+    return { success: false, error: message }
+  }
+}
+
 export async function crearEntrada(formData: FormData): Promise<ActionResult> {
   try {
     await checkAuth()
@@ -136,6 +162,64 @@ export async function eliminarEntrada(id: string): Promise<ActionResult> {
   }
 }
 
+export async function actualizarEntrada(id: string, formData: FormData): Promise<ActionResult> {
+  try {
+    await checkAuth()
+    const entrada = await prisma.entrada.findUnique({ where: { id } })
+    if (!entrada) return { success: false, error: 'Entrada no encontrada' }
+    if (entrada.estatus === 'Entregado') {
+      return { success: false, error: 'No se puede editar una entrada entregada' }
+    }
+
+    const fechaRaw = String(formData.get('fecha') ?? '')
+    const proveedorId = String(formData.get('proveedorId') ?? '')
+    const banco = String(formData.get('banco') ?? '').trim()
+    const material = String(formData.get('material') ?? '')
+    const medida = String(formData.get('medida') ?? '')
+    const pesoRaw = String(formData.get('pesoKg') ?? '')
+
+    if (!fechaRaw || !proveedorId || !banco || !material || !medida || !pesoRaw) {
+      return { success: false, error: 'Todos los campos son requeridos' }
+    }
+
+    if (!(MATERIALES as readonly string[]).includes(material)) {
+      return { success: false, error: 'Material inválido' }
+    }
+
+    const medidasPermitidas = MEDIDAS_POR_MATERIAL[material as keyof typeof MEDIDAS_POR_MATERIAL]
+    if (!(medidasPermitidas as readonly string[]).includes(medida)) {
+      return { success: false, error: 'Medida inválida para el material seleccionado' }
+    }
+
+    const fecha = new Date(fechaRaw + 'T00:00:00')
+    if (isNaN(fecha.getTime())) {
+      return { success: false, error: 'Fecha inválida' }
+    }
+
+    const pesoKg = Number(pesoRaw)
+    if (isNaN(pesoKg) || pesoKg <= 0) {
+      return { success: false, error: 'Peso inválido' }
+    }
+
+    const semana = getWeek(fecha)
+
+    await prisma.entrada.update({
+      where: { id },
+      data: { fecha, semana, proveedorId, banco, material, medida, pesoKg },
+    })
+
+    revalidatePath('/entradas')
+    revalidatePath('/inventario')
+    revalidatePath('/salidas')
+    revalidatePath('/reportes/tacon')
+    revalidatePath('/reportes/lena')
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error al actualizar entrada'
+    return { success: false, error: message }
+  }
+}
+
 export async function obtenerEntradasDisponibles() {
   const session = await auth()
   if (!session) throw new Error('No autorizado')
@@ -193,6 +277,63 @@ export async function crearSalida(formData: FormData): Promise<ActionResult> {
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error al crear salida'
+    return { success: false, error: message }
+  }
+}
+
+export async function actualizarSalida(id: string, formData: FormData): Promise<ActionResult> {
+  try {
+    await checkAuth()
+    const fechaRaw = String(formData.get('fecha') ?? '')
+    const entradaIds = formData.getAll('entradaIds').map((v) => String(v))
+
+    if (!fechaRaw) return { success: false, error: 'La fecha es requerida' }
+    if (entradaIds.length === 0) {
+      return { success: false, error: 'Selecciona al menos una entrada' }
+    }
+
+    const fecha = new Date(fechaRaw + 'T00:00:00')
+    if (isNaN(fecha.getTime())) {
+      return { success: false, error: 'Fecha inválida' }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const salida = await tx.salida.update({
+        where: { id },
+        data: { fecha },
+      })
+
+      // Devolver todas las entradas anteriores a inventario
+      await tx.entrada.updateMany({
+        where: { salidaId: id },
+        data: { estatus: 'EnInventario', salidaId: null },
+      })
+
+      // Validar nuevas entradas disponibles
+      const disponibles = await tx.entrada.findMany({
+        where: { id: { in: entradaIds }, estatus: 'EnInventario' },
+        select: { id: true },
+      })
+
+      if (disponibles.length !== entradaIds.length) {
+        throw new Error('Una o más entradas ya no están disponibles')
+      }
+
+      // Asignar nuevas entradas a la salida
+      await tx.entrada.updateMany({
+        where: { id: { in: entradaIds } },
+        data: { estatus: 'Entregado', salidaId: salida.id },
+      })
+    })
+
+    revalidatePath('/salidas')
+    revalidatePath('/entradas')
+    revalidatePath('/inventario')
+    revalidatePath('/reportes/tacon')
+    revalidatePath('/reportes/lena')
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error al actualizar salida'
     return { success: false, error: message }
   }
 }

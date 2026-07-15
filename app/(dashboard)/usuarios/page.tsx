@@ -12,8 +12,10 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { ResponsiveTable } from '@/components/responsive-table'
 import { UsuarioForm } from './usuario-form'
 import { UsuarioDelete } from './usuario-delete'
+import { UsuarioEdit } from './usuario-edit'
 
 export default async function UsuariosPage() {
   const session = await auth()
@@ -45,14 +47,14 @@ export default async function UsuariosPage() {
           <CardTitle>Usuarios registrados</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <ResponsiveTable>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Correo</TableHead>
                   <TableHead>Rol</TableHead>
-                  <TableHead className="w-24"></TableHead>
+                  <TableHead className="w-28 text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -72,14 +74,21 @@ export default async function UsuariosPage() {
                         {u.role}
                       </Badge>
                     </TableCell>
-                    <TableCell>
-                      <UsuarioDelete id={u.id} email={u.email} isSelf={session.user.id === u.id} />
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <UsuarioEdit usuario={u} />
+                        <UsuarioDelete
+                          id={u.id}
+                          email={u.email}
+                          isSelf={session.user.id === u.id}
+                        />
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </ResponsiveTable>
         </CardContent>
       </Card>
     </div>

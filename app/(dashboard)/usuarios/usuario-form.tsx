@@ -11,44 +11,79 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { crearUsuario } from '@/app/actions/usuarios'
+import { crearUsuario, actualizarUsuario } from '@/app/actions/usuarios'
 import { toast } from 'sonner'
 
-export function UsuarioForm() {
+export function UsuarioForm({
+  usuario,
+  onSuccess,
+}: {
+  usuario?: { id: string; name: string | null; email: string; role: string }
+  onSuccess?: () => void
+}) {
   const [isPending, startTransition] = useTransition()
-  const [role, setRole] = useState('OPERADOR')
+  const isEditing = Boolean(usuario)
+  const [role, setRole] = useState(usuario?.role ?? 'OPERADOR')
 
   async function handleSubmit(formData: FormData) {
     startTransition(async () => {
-      const result = await crearUsuario(formData)
+      const result = isEditing
+        ? await actualizarUsuario(usuario!.id, formData)
+        : await crearUsuario(formData)
       if (result.success) {
-        toast.success('Usuario creado')
-        const form = document.getElementById('usuario-form') as HTMLFormElement
-        form?.reset()
-        setRole('OPERADOR')
+        toast.success(isEditing ? 'Usuario actualizado' : 'Usuario creado')
+        onSuccess?.()
       } else {
-        toast.error(result.error || 'Error al crear usuario')
+        toast.error(result.error || 'Error al guardar usuario')
       }
     })
   }
 
   return (
-    <form id="usuario-form" action={handleSubmit} className="grid gap-4 md:grid-cols-2">
+    <form action={handleSubmit} className="grid gap-4">
       <div className="space-y-2">
         <Label htmlFor="name">Nombre</Label>
-        <Input id="name" name="name" type="text" placeholder="Juan Pérez" />
+        <Input
+          id="name"
+          name="name"
+          type="text"
+          placeholder="Juan Pérez"
+          defaultValue={usuario?.name ?? ''}
+        />
       </div>
+      {!isEditing && (
+        <div className="space-y-2">
+          <Label htmlFor="email">Correo</Label>
+          <Input
+            id="email"
+            name="email"
+            type="email"
+            required={!isEditing}
+            placeholder="usuario@ejemplo.com"
+            defaultValue={usuario?.email}
+          />
+        </div>
+      )}
       <div className="space-y-2">
-        <Label htmlFor="email">Correo</Label>
-        <Input id="email" name="email" type="email" required placeholder="usuario@ejemplo.com" />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="password">Contraseña</Label>
-        <Input id="password" name="password" type="password" required minLength={6} />
+        <Label htmlFor="password">
+          Contraseña {isEditing && '(dejar en blanco para no cambiar)'}
+        </Label>
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          minLength={6}
+          required={!isEditing}
+        />
       </div>
       <div className="space-y-2">
         <Label htmlFor="role">Rol</Label>
-        <Select name="role" value={role} onValueChange={(value) => setRole(value ?? 'OPERADOR')} required>
+        <Select
+          name="role"
+          value={role}
+          onValueChange={(value) => setRole(value ?? 'OPERADOR')}
+          required
+        >
           <SelectTrigger>
             <SelectValue placeholder="Selecciona un rol" />
           </SelectTrigger>
@@ -58,9 +93,9 @@ export function UsuarioForm() {
           </SelectContent>
         </Select>
       </div>
-      <div className="md:col-span-2">
+      <div className="flex justify-end">
         <Button type="submit" disabled={isPending}>
-          {isPending ? 'Guardando...' : 'Crear usuario'}
+          {isPending ? 'Guardando...' : isEditing ? 'Actualizar usuario' : 'Crear usuario'}
         </Button>
       </div>
     </form>

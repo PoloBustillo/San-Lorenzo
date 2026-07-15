@@ -11,6 +11,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { MATERIALES_LENA, obtenerCodigoProducto } from '@/lib/constants'
+import { ResponsiveTable } from '@/components/responsive-table'
 
 export default async function ReporteLenaPage() {
   const session = await auth()
@@ -75,7 +76,7 @@ export default async function ReporteLenaPage() {
           <CardTitle>Detalle por código</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <ResponsiveTable>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -105,7 +106,7 @@ export default async function ReporteLenaPage() {
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </ResponsiveTable>
         </CardContent>
       </Card>
     </div>

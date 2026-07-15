@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { MATERIALES, obtenerCodigoProducto } from '@/lib/constants'
+import { ResponsiveTable } from '@/components/responsive-table'
 import { cn } from '@/lib/utils'
 
 export default async function InventarioPage({
@@ -121,7 +122,7 @@ export default async function InventarioPage({
             </div>
           </div>
 
-          <div className="rounded-md border">
+          <ResponsiveTable>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -151,7 +152,7 @@ export default async function InventarioPage({
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </ResponsiveTable>
         </CardContent>
       </Card>
     </div>

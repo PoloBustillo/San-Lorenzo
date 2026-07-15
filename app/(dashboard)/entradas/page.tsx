@@ -13,8 +13,11 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
 import { MATERIALES } from '@/lib/constants'
+import { ResponsiveTable } from '@/components/responsive-table'
 import { EntradaForm } from './entrada-form'
 import { EntradaFilters } from './entrada-filters'
+import { EntradaEdit } from './entrada-edit'
+import { EntradaDelete } from './entrada-delete'
 import { cn } from '@/lib/utils'
 
 const PAGE_SIZE = 20
@@ -74,7 +77,7 @@ export default async function EntradasPage({
         <CardContent className="space-y-4">
           <EntradaFilters materiales={MATERIALES} />
 
-          <div className="rounded-md border">
+          <ResponsiveTable>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -86,13 +89,14 @@ export default async function EntradasPage({
                   <TableHead>Medida</TableHead>
                   <TableHead>Peso KG</TableHead>
                   <TableHead>Estatus</TableHead>
+                  <TableHead className="w-28 text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {entradas.length === 0 && (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={9}
                       className="text-center text-muted-foreground"
                     >
                       No hay entradas registradas.
@@ -123,11 +127,19 @@ export default async function EntradasPage({
                         {e.estatus === 'EnInventario' ? 'En inventario' : 'Entregado'}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        {e.estatus === 'EnInventario' && (
+                          <EntradaEdit entrada={e} proveedores={proveedores} />
+                        )}
+                        <EntradaDelete id={e.id} disabled={e.estatus === 'Entregado'} />
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </div>
+          </ResponsiveTable>
 
           <div className="flex items-center justify-between">
             <p className="text-sm text-muted-foreground">

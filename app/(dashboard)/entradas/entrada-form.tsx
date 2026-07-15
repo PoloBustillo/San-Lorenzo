@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState, useTransition } from 'react'
-import { crearEntrada } from '@/app/actions/inventario'
+import { crearEntrada, actualizarEntrada } from '@/app/actions/inventario'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -17,13 +17,26 @@ import { toast } from 'sonner'
 
 export function EntradaForm({
   proveedores,
+  entrada,
+  onSuccess,
 }: {
   proveedores: { id: string; nombre: string }[]
+  entrada?: {
+    id: string
+    fecha: Date
+    proveedorId: string
+    banco: string
+    material: string
+    medida: string
+    pesoKg: number
+  }
+  onSuccess?: () => void
 }) {
   const ref = useRef<HTMLFormElement>(null)
-  const [material, setMaterial] = useState<string>(MATERIALES[0])
+  const isEditing = Boolean(entrada)
+  const [material, setMaterial] = useState<string>(entrada?.material ?? MATERIALES[0])
   const [medida, setMedida] = useState<string>(
-    MEDIDAS_POR_MATERIAL[MATERIALES[0]][0]
+    entrada?.medida ?? MEDIDAS_POR_MATERIAL[MATERIALES[0]][0]
   )
   const [isPending, startTransition] = useTransition()
 
@@ -39,33 +52,42 @@ export function EntradaForm({
 
   async function handleSubmit(formData: FormData) {
     startTransition(async () => {
-      const result = await crearEntrada(formData)
+      const result = isEditing
+        ? await actualizarEntrada(entrada!.id, formData)
+        : await crearEntrada(formData)
       if (result.success) {
-        toast.success('Entrada registrada')
-        ref.current?.reset()
-        setMaterial(MATERIALES[0])
-        setMedida(MEDIDAS_POR_MATERIAL[MATERIALES[0]][0])
+        toast.success(isEditing ? 'Entrada actualizada' : 'Entrada registrada')
+        if (!isEditing) {
+          ref.current?.reset()
+          setMaterial(MATERIALES[0])
+          setMedida(MEDIDAS_POR_MATERIAL[MATERIALES[0]][0])
+        }
+        onSuccess?.()
       } else {
-        toast.error(result.error || 'Error al registrar entrada')
+        toast.error(result.error || 'Error al guardar entrada')
       }
     })
   }
 
   return (
-    <form ref={ref} action={handleSubmit} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <form ref={ref} action={handleSubmit} className="grid gap-4 sm:grid-cols-2">
       <div className="space-y-2">
         <Label htmlFor="fecha">Fecha</Label>
         <Input
           id="fecha"
           name="fecha"
           type="date"
-          defaultValue={new Date().toISOString().split('T')[0]}
+          defaultValue={
+            entrada
+              ? entrada.fecha.toISOString().split('T')[0]
+              : new Date().toISOString().split('T')[0]
+          }
           required
         />
       </div>
       <div className="space-y-2">
         <Label htmlFor="proveedorId">Proveedor / Cliente</Label>
-        <Select name="proveedorId" required>
+        <Select name="proveedorId" defaultValue={entrada?.proveedorId} required>
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Selecciona" />
           </SelectTrigger>
@@ -80,7 +102,7 @@ export function EntradaForm({
       </div>
       <div className="space-y-2">
         <Label htmlFor="banco">Banco</Label>
-        <Input id="banco" name="banco" placeholder="Ej. B-001" required />
+        <Input id="banco" name="banco" placeholder="Ej. B-001" defaultValue={entrada?.banco} required />
       </div>
       <div className="space-y-2">
         <Label htmlFor="material">Material</Label>
@@ -131,12 +153,13 @@ export function EntradaForm({
           step="0.01"
           min="0.01"
           placeholder="0.00"
+          defaultValue={entrada?.pesoKg}
           required
         />
       </div>
-      <div className="flex items-end">
-        <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
-          {isPending ? 'Guardando...' : 'Guardar entrada'}
+      <div className="flex justify-end sm:col-span-2">
+        <Button type="submit" disabled={isPending}>
+          {isPending ? 'Guardando...' : isEditing ? 'Actualizar entrada' : 'Guardar entrada'}
         </Button>
       </div>
     </form>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useTransition } from 'react'
-import { crearProveedor } from '@/app/actions/inventario'
+import { crearProveedor, actualizarProveedor } from '@/app/actions/inventario'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,31 +14,47 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 
-export function ProveedorForm() {
+export function ProveedorForm({
+  proveedor,
+  onSuccess,
+}: {
+  proveedor?: { id: string; nombre: string; tipo: 'CLIENTE' | 'PROVEEDOR' }
+  onSuccess?: () => void
+}) {
   const ref = useRef<HTMLFormElement>(null)
   const [isPending, startTransition] = useTransition()
+  const isEditing = Boolean(proveedor)
 
   async function handleSubmit(formData: FormData) {
     startTransition(async () => {
-      const result = await crearProveedor(formData)
+      const result = isEditing
+        ? await actualizarProveedor(proveedor!.id, formData)
+        : await crearProveedor(formData)
       if (result.success) {
-        toast.success('Proveedor creado')
-        ref.current?.reset()
+        toast.success(isEditing ? 'Proveedor actualizado' : 'Proveedor creado')
+        if (!isEditing) ref.current?.reset()
+        onSuccess?.()
       } else {
-        toast.error(result.error || 'Error al crear proveedor')
+        toast.error(result.error || 'Error al guardar proveedor')
       }
     })
   }
 
   return (
-    <form ref={ref} action={handleSubmit} className="grid gap-4 sm:grid-cols-3">
+    <form ref={ref} action={handleSubmit} className="grid gap-4">
       <div className="space-y-2">
         <Label htmlFor="nombre">Nombre</Label>
-        <Input id="nombre" name="nombre" placeholder="Nombre" required />
+        <Input
+          id="nombre"
+          name="nombre"
+          placeholder="Nombre"
+          defaultValue={proveedor?.nombre}
+          required
+        />
       </div>
       <div className="space-y-2">
         <Label htmlFor="tipo">Tipo</Label>
-        <Select name="tipo" defaultValue="PROVEEDOR" required>
+        <Select name="tipo" defaultValue={proveedor?.tipo ?? 'PROVEEDOR'} required>
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Selecciona tipo" />
           </SelectTrigger>
@@ -48,9 +64,9 @@ export function ProveedorForm() {
           </SelectContent>
         </Select>
       </div>
-      <div className="flex items-end">
-        <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
-          {isPending ? 'Guardando...' : 'Guardar'}
+      <div className="flex justify-end">
+        <Button type="submit" disabled={isPending}>
+          {isPending ? 'Guardando...' : isEditing ? 'Actualizar' : 'Guardar'}
         </Button>
       </div>
     </form>
