@@ -1,5 +1,6 @@
 import { PrismaClient, Role, TipoProveedor } from '@prisma/client'
 import bcrypt from 'bcryptjs'
+import { MATERIALES } from '../lib/constants'
 
 const prisma = new PrismaClient()
 
@@ -28,6 +29,31 @@ async function main() {
       where: { nombre: p.nombre },
       update: {},
       create: p,
+    })
+  }
+
+  const configDefaults: Record<string, string> = {
+    EMPRESA_NOMBRE: 'Aserradero San Lorenzo',
+    EMPRESA_DIRECCION: 'Av. Principal #123, Col. Centro, Cd. Madero',
+    EMPRESA_TELEFONO: '833-123-4567',
+    EMPRESA_RFC: 'ASL123456ABC',
+    EMPRESA_LOGO: '',
+    IVA_PORCENTAJE: '16',
+  }
+
+  for (const [clave, valor] of Object.entries(configDefaults)) {
+    await prisma.configuracion.upsert({
+      where: { clave },
+      update: {},
+      create: { clave, valor },
+    })
+  }
+
+  for (const material of MATERIALES) {
+    await prisma.umbralMaterial.upsert({
+      where: { material },
+      update: {},
+      create: { material, minBancos: 0, minKg: 0, precioPorKg: 0 },
     })
   }
 

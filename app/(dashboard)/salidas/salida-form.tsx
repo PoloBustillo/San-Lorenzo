@@ -100,7 +100,7 @@ export function SalidaForm({ salida, trigger }: { salida?: SalidaEdit; trigger?:
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={trigger ?? <Button>{isEditing ? 'Editar' : 'Nueva salida'}</Button>} />
-      <DialogContent className="max-h-[90vh] max-w-6xl overflow-y-auto">
+      <DialogContent className="fixed inset-0 top-0 left-0 h-[100dvh] w-screen max-h-none max-w-none translate-x-0 translate-y-0 rounded-none border-0 p-4 sm:p-6 overflow-y-auto sm:max-w-none">
         <form action={handleSubmit}>
           <DialogHeader>
             <DialogTitle>{isEditing ? 'Editar salida' : 'Nueva salida'}</DialogTitle>

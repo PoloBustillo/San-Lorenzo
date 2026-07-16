@@ -13,8 +13,9 @@ import {
 import { buttonVariants } from '@/components/ui/button'
 import { MATERIALES } from '@/lib/constants'
 import { ResponsiveTable } from '@/components/responsive-table'
+import { TableExport } from '@/components/table-export'
 import { getEstatusLabel } from '@/lib/utils'
-import { EntradaForm } from './entrada-form'
+import { EntradaCreate } from './entrada-create'
 import { EntradaFilters } from './entrada-filters'
 import { EntradaEdit } from './entrada-edit'
 import { EntradaDelete } from './entrada-delete'
@@ -41,7 +42,7 @@ export default async function EntradasPage({
     ...(estatusFilter && { estatus: estatusFilter }),
   }
 
-  const [entradas, total, proveedores] = await Promise.all([
+  const [entradas, total, proveedores, todasEntradas] = await Promise.all([
     prisma.entrada.findMany({
       where,
       include: { proveedor: true },
@@ -51,29 +52,40 @@ export default async function EntradasPage({
     }),
     prisma.entrada.count({ where }),
     prisma.proveedor.findMany({ orderBy: { nombre: 'asc' } }),
+    prisma.entrada.findMany({
+      where,
+      include: { proveedor: true },
+      orderBy: { fecha: 'desc' },
+    }),
   ])
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
+  const exportRows = todasEntradas.map((e) => ({
+    Fecha: e.fecha.toISOString().split('T')[0],
+    Semana: e.semana,
+    Origen: e.proveedor.nombre,
+    Banco: e.banco,
+    Material: e.material,
+    Medida: e.medida,
+    'Peso KG': e.pesoKg,
+    Estatus: getEstatusLabel(e.estatus),
+  }))
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Entradas</h1>
-        <p className="text-muted-foreground">Registro de bancos recibidos.</p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Entradas</h1>
+          <p className="text-muted-foreground">Registro de bancos recibidos.</p>
+        </div>
+        <EntradaCreate proveedores={proveedores} />
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Nueva entrada</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <EntradaForm proveedores={proveedores} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Historial</CardTitle>
+          <TableExport filename="entradas.xlsx" rows={exportRows} />
         </CardHeader>
         <CardContent className="space-y-4">
           <EntradaFilters materiales={MATERIALES} />

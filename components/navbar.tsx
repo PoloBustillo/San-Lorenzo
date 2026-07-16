@@ -22,6 +22,7 @@ import {
   BarChart3,
   Users,
   Upload,
+  Settings,
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme-toggle'
 
@@ -34,7 +35,10 @@ const navItems = [
   { href: '/importar', label: 'Importar', icon: Upload },
 ]
 
-const adminItem = { href: '/usuarios', label: 'Usuarios', icon: Users }
+const adminItems = [
+  { href: '/usuarios', label: 'Usuarios', icon: Users },
+  { href: '/configuracion', label: 'Configuración', icon: Settings },
+]
 
 const reportItems = [
   { href: '/reportes/armado', label: 'Armado' },
@@ -108,17 +112,19 @@ export function Navbar({ user }: { user: { name?: string | null; email?: string 
                     {item.label}
                   </Link>
                 ))}
-                {isAdmin && (
-                  <Link
-                    href={adminItem.href}
-                    className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent ${
-                      pathname === adminItem.href ? 'bg-accent' : ''
-                    }`}
-                  >
-                    <adminItem.icon className="h-4 w-4" />
-                    {adminItem.label}
-                  </Link>
-                )}
+                {isAdmin &&
+                  adminItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium hover:bg-accent ${
+                        pathname === item.href ? 'bg-accent' : ''
+                      }`}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {item.label}
+                    </Link>
+                  ))}
               </nav>
             </SheetContent>
           </Sheet>
@@ -158,9 +164,15 @@ export function Navbar({ user }: { user: { name?: string | null; email?: string 
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          {isAdmin && (
-            <NavLink href={adminItem.href} label={adminItem.label} active={pathname === adminItem.href} />
-          )}
+          {isAdmin &&
+            adminItems.map((item) => (
+              <NavLink
+                key={item.href}
+                href={item.href}
+                label={item.label}
+                active={pathname === item.href}
+              />
+            ))}
         </nav>
 
         <div className="flex items-center gap-2 md:gap-4">

@@ -12,7 +12,8 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { ResponsiveTable } from '@/components/responsive-table'
-import { ProveedorForm } from './proveedor-form'
+import { TableExport } from '@/components/table-export'
+import { ProveedorCreate } from './proveedor-create'
 import { ProveedorDelete } from './proveedor-delete'
 import { ProveedorEdit } from './proveedor-edit'
 
@@ -24,25 +25,25 @@ export default async function ProveedoresPage() {
     orderBy: { nombre: 'asc' },
   })
 
+  const exportRows = proveedores.map((p) => ({
+    Nombre: p.nombre,
+    Tipo: p.tipo,
+  }))
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Proveedores</h1>
-        <p className="text-muted-foreground">Administra proveedores y clientes.</p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Proveedores</h1>
+          <p className="text-muted-foreground">Administra proveedores y clientes.</p>
+        </div>
+        <ProveedorCreate />
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Nuevo proveedor / cliente</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ProveedorForm />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Listado</CardTitle>
+          <TableExport filename="proveedores.xlsx" rows={exportRows} />
         </CardHeader>
         <CardContent>
           <ResponsiveTable>

@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/table'
 import { MATERIALES_TACON, obtenerCodigoProducto } from '@/lib/constants'
 import { ResponsiveTable } from '@/components/responsive-table'
+import { TableExport } from '@/components/table-export'
 import { ESTATUS_INVENTARIO } from '@/lib/utils'
 
 export default async function ReporteTaconPage() {
@@ -46,6 +47,14 @@ export default async function ReporteTaconPage() {
   const items = Object.entries(grupos).sort(([a], [b]) => a.localeCompare(b))
   const totalKg = entradas.reduce((sum, e) => sum + e.pesoKg, 0)
 
+  const exportRows = items.map(([codigo, item]) => ({
+    Código: codigo,
+    Material: item.material,
+    Medida: item.medida,
+    'Total KG': item.totalKg,
+    Bancos: item.bancos,
+  }))
+
   return (
     <div className="space-y-6">
       <div>
@@ -73,8 +82,9 @@ export default async function ReporteTaconPage() {
       </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Detalle por código</CardTitle>
+          <TableExport filename="reporte_tacon.xlsx" rows={exportRows} />
         </CardHeader>
         <CardContent>
           <ResponsiveTable>

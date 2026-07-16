@@ -13,7 +13,8 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { ResponsiveTable } from '@/components/responsive-table'
-import { UsuarioForm } from './usuario-form'
+import { TableExport } from '@/components/table-export'
+import { UsuarioCreate } from './usuario-create'
 import { UsuarioDelete } from './usuario-delete'
 import { UsuarioEdit } from './usuario-edit'
 
@@ -26,25 +27,26 @@ export default async function UsuariosPage() {
     orderBy: { createdAt: 'desc' },
   })
 
+  const exportRows = usuarios.map((u) => ({
+    Nombre: u.name ?? '',
+    Correo: u.email,
+    Rol: u.role,
+  }))
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Usuarios</h1>
-        <p className="text-muted-foreground">Gestión de usuarios del sistema.</p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Usuarios</h1>
+          <p className="text-muted-foreground">Gestión de usuarios del sistema.</p>
+        </div>
+        <UsuarioCreate />
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Nuevo usuario</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <UsuarioForm />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Usuarios registrados</CardTitle>
+          <TableExport filename="usuarios.xlsx" rows={exportRows} />
         </CardHeader>
         <CardContent>
           <ResponsiveTable>

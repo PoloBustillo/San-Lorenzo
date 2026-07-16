@@ -63,3 +63,17 @@ model Salida {
   entradas  Entrada[]
   createdAt DateTime  @default(now())
 }
+
+model Configuracion {
+  id    String @id @default(uuid())
+  clave String @unique
+  valor String
+}
+
+model UmbralMaterial {
+  id          String  @id @default(uuid())
+  material    String  @unique
+  minBancos   Int?
+  minKg       Float?
+  precioPorKg Float?
+}
