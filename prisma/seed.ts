@@ -1,6 +1,6 @@
 import { PrismaClient, Role, TipoProveedor } from '@prisma/client'
 import bcrypt from 'bcryptjs'
-import { MATERIALES } from '../lib/constants'
+import { MATERIALES, MEDIDAS } from '../lib/constants'
 
 const prisma = new PrismaClient()
 
@@ -54,6 +54,22 @@ async function main() {
       where: { material },
       update: {},
       create: { material, minBancos: 0, minKg: 0, precioPorKg: 0 },
+    })
+  }
+
+  for (const m of MATERIALES) {
+    await prisma.catalogoMaterial.upsert({
+      where: { nombre: m },
+      update: {},
+      create: { nombre: m },
+    })
+  }
+
+  for (const m of MEDIDAS) {
+    await prisma.catalogoMedida.upsert({
+      where: { nombre: m },
+      update: {},
+      create: { nombre: m },
     })
   }
 

@@ -9,6 +9,7 @@ import { EntradaForm } from './entrada-form'
 export function EntradaEdit({
   entrada,
   proveedores,
+  materiales,
 }: {
   entrada: {
     id: string
@@ -20,6 +21,7 @@ export function EntradaEdit({
     pesoKg: number
   }
   proveedores: { id: string; nombre: string }[]
+  materiales: string[]
 }) {
   const [open, setOpen] = useState(false)
 
@@ -34,7 +36,7 @@ export function EntradaEdit({
         </Button>
       }
     >
-      <EntradaForm entrada={entrada} proveedores={proveedores} onSuccess={() => setOpen(false)} />
+      <EntradaForm entrada={entrada} proveedores={proveedores} materiales={materiales} onSuccess={() => setOpen(false)} />
     </EntityModal>
   )
 }

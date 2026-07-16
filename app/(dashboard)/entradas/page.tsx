@@ -8,16 +8,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { MATERIALES } from '@/lib/constants'
 import { ResponsiveTable } from '@/components/responsive-table'
 import { ReportExport } from '@/components/report-export'
 import { Pagination } from '@/components/pagination'
 import { getEstatusLabel } from '@/lib/utils'
 import { EntradaCreate } from './entrada-create'
-import { EntradaFilters } from './entrada-filters'
 import { EntradaEdit } from './entrada-edit'
 import { EntradaDelete } from './entrada-delete'
 import { EntradaStatus } from './entrada-status'
+import { obtenerCatalogoMateriales } from '@/app/actions/catalogo'
+import { FilterBar } from '@/components/filter-bar'
 
 const PAGE_SIZE = 20
 
@@ -58,7 +58,7 @@ export default async function EntradasPage({
       : {}),
   }
 
-  const [entradas, total, proveedores, todasEntradas] = await Promise.all([
+  const [entradas, total, proveedores, todasEntradas, catalogoMateriales] = await Promise.all([
     prisma.entrada.findMany({
       where,
       include: { proveedor: true },
@@ -73,7 +73,10 @@ export default async function EntradasPage({
       include: { proveedor: true },
       orderBy: { fecha: 'desc' },
     }),
+    obtenerCatalogoMateriales(),
   ])
+
+  const materiales = catalogoMateriales.map((m) => m.nombre)
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
@@ -95,7 +98,7 @@ export default async function EntradasPage({
           <h1 className="text-3xl font-bold tracking-tight">Entradas</h1>
           <p className="text-muted-foreground">Registro de bancos recibidos.</p>
         </div>
-        <EntradaCreate proveedores={proveedores} />
+        <EntradaCreate proveedores={proveedores} materiales={materiales} />
       </div>
 
       <Card>
@@ -120,7 +123,12 @@ export default async function EntradasPage({
           />
         </CardHeader>
         <CardContent className="space-y-4">
-          <EntradaFilters materiales={MATERIALES} proveedores={proveedores} />
+          <FilterBar
+            basePath="/entradas"
+            fields={['material', 'estatus', 'proveedor', 'fechaDesde', 'fechaHasta', 'semana']}
+            materiales={materiales}
+            proveedores={proveedores}
+          />
 
           <ResponsiveTable>
             <Table>
@@ -169,7 +177,7 @@ export default async function EntradasPage({
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         {(e.estatus === 'EnInventario' || e.estatus === 'EnPreparacion') && (
-                          <EntradaEdit entrada={e} proveedores={proveedores} />
+                          <EntradaEdit entrada={e} proveedores={proveedores} materiales={materiales} />
                         )}
                         <EntradaDelete id={e.id} disabled={e.estatus === 'Entregado'} />
                       </div>

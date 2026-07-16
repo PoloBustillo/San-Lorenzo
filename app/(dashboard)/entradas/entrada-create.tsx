@@ -8,8 +8,10 @@ import { EntradaForm } from './entrada-form'
 
 export function EntradaCreate({
   proveedores,
+  materiales,
 }: {
   proveedores: { id: string; nombre: string }[]
+  materiales: string[]
 }) {
   const [open, setOpen] = useState(false)
 
@@ -26,7 +28,7 @@ export function EntradaCreate({
         </Button>
       }
     >
-      <EntradaForm proveedores={proveedores} onSuccess={() => setOpen(false)} />
+      <EntradaForm proveedores={proveedores} materiales={materiales} onSuccess={() => setOpen(false)} />
     </EntityModal>
   )
 }

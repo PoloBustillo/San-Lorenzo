@@ -13,9 +13,10 @@ import { buttonVariants } from '@/components/ui/button'
 import { ArmadoFilters } from './armado-filters'
 import { ArmadoExport } from './armado-export'
 import { ResponsiveTable } from '@/components/responsive-table'
-import { MATERIALES, obtenerCodigoProducto } from '@/lib/constants'
+import { obtenerCodigoProducto } from '@/lib/constants'
 import { ESTATUS_INVENTARIO } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import { obtenerCatalogoMateriales } from '@/app/actions/catalogo'
 
 export default async function ArmadoPage({
   searchParams,
@@ -31,14 +32,17 @@ export default async function ArmadoPage({
     ...(params.medida && { medida: params.medida }),
   }
 
-  const [entradas, proveedores] = await Promise.all([
+  const [entradas, proveedores, catalogoMateriales] = await Promise.all([
     prisma.entrada.findMany({
       where,
       include: { proveedor: true },
       orderBy: [{ material: 'asc' }, { medida: 'asc' }, { fecha: 'asc' }],
     }),
     prisma.proveedor.findMany({ orderBy: { nombre: 'asc' } }),
+    obtenerCatalogoMateriales(),
   ])
+
+  const materiales = catalogoMateriales.map((m) => m.nombre)
 
   const agrupado = entradas.reduce(
     (acc, e) => {
@@ -94,7 +98,7 @@ export default async function ArmadoPage({
           <CardTitle>Filtros</CardTitle>
         </CardHeader>
         <CardContent>
-          <ArmadoFilters proveedores={proveedores} materiales={MATERIALES} />
+          <ArmadoFilters proveedores={proveedores} materiales={materiales} />
         </CardContent>
       </Card>
 

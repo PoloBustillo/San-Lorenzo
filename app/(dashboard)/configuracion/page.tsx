@@ -3,19 +3,21 @@ import { redirect } from 'next/navigation'
 import { Role } from '@prisma/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { obtenerConfiguracion, obtenerUmbrales } from '@/app/actions/configuracion'
-import { MATERIALES } from '@/lib/constants'
 import { ConfigEmpresaForm } from './config-empresa-form'
 import { ConfigUmbralesForm } from './config-umbrales-form'
+import { obtenerCatalogoMateriales } from '@/app/actions/catalogo'
 
 export default async function ConfiguracionPage() {
   const session = await auth()
   if (session?.user.role !== Role.ADMIN) redirect('/')
 
-  const [config, umbrales] = await Promise.all([
+  const [config, umbrales, catalogoMateriales] = await Promise.all([
     obtenerConfiguracion(),
     obtenerUmbrales(),
+    obtenerCatalogoMateriales(),
   ])
 
+  const materiales = catalogoMateriales.map((m) => m.nombre)
   const umbralesMap = new Map(umbrales.map((u) => [u.material, u]))
 
   return (
@@ -39,7 +41,7 @@ export default async function ConfiguracionPage() {
           <CardTitle>Umbrales y precios por material</CardTitle>
         </CardHeader>
         <CardContent>
-          <ConfigUmbralesForm materiales={MATERIALES} umbrales={umbralesMap} />
+          <ConfigUmbralesForm materiales={materiales} umbrales={umbralesMap} />
         </CardContent>
       </Card>
     </div>

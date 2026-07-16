@@ -52,22 +52,26 @@ export async function buscarGlobal(query: string): Promise<SearchResult[]> {
   ])
 
   for (const e of entradas) {
+    const params = new URLSearchParams({ material: e.material })
     results.push({
       type: 'entrada',
       title: `Entrada: ${e.banco}`,
       subtitle: `${e.material} · ${e.medida} · ${e.pesoKg.toFixed(2)} KG · ${e.proveedor.nombre}`,
-      href: '/entradas',
+      href: `/entradas?${params.toString()}`,
     })
   }
 
   const qNum = parseInt(q, 10)
   for (const s of salidas) {
     if (!isNaN(qNum) && s.numero !== qNum) continue
+    const params = new URLSearchParams()
+    if (!isNaN(qNum)) params.set('numero', String(s.numero))
+    const href = params.toString() ? `/salidas?${params.toString()}` : '/salidas'
     results.push({
       type: 'salida',
       title: `Salida ${s.numero}`,
       subtitle: `${s.fecha.toISOString().split('T')[0]} · ${s.entradas.length} bancos`,
-      href: '/salidas',
+      href,
     })
   }
 
@@ -81,11 +85,12 @@ export async function buscarGlobal(query: string): Promise<SearchResult[]> {
   }
 
   for (const i of inventario) {
+    const params = new URLSearchParams({ material: i.material })
     results.push({
       type: 'inventario',
       title: `Inventario: ${i.banco}`,
       subtitle: `${i.material} · ${i.medida} · ${i.pesoKg.toFixed(2)} KG`,
-      href: '/inventario',
+      href: `/inventario?${params.toString()}`,
     })
   }
 

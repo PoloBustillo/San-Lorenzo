@@ -12,15 +12,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { MATERIALES, MEDIDAS_POR_MATERIAL } from '@/lib/constants'
+import { MEDIDAS_POR_MATERIAL } from '@/lib/constants'
 import { toast } from 'sonner'
 
 export function EntradaForm({
   proveedores,
+  materiales,
   entrada,
   onSuccess,
 }: {
   proveedores: { id: string; nombre: string }[]
+  materiales: string[]
   entrada?: {
     id: string
     fecha: Date
@@ -34,9 +36,9 @@ export function EntradaForm({
 }) {
   const ref = useRef<HTMLFormElement>(null)
   const isEditing = Boolean(entrada)
-  const [material, setMaterial] = useState<string>(entrada?.material ?? MATERIALES[0])
+  const [material, setMaterial] = useState<string>(entrada?.material ?? materiales[0] ?? '')
   const [medida, setMedida] = useState<string>(
-    entrada?.medida ?? MEDIDAS_POR_MATERIAL[MATERIALES[0]][0]
+    entrada?.medida ?? (materiales[0] ? MEDIDAS_POR_MATERIAL[materiales[0] as keyof typeof MEDIDAS_POR_MATERIAL]?.[0] ?? '' : '')
   )
   const [proveedorId, setProveedorId] = useState<string>(entrada?.proveedorId ?? '')
   const [isPending, startTransition] = useTransition()
@@ -60,8 +62,9 @@ export function EntradaForm({
         toast.success(isEditing ? 'Entrada actualizada' : 'Entrada registrada')
         if (!isEditing) {
           ref.current?.reset()
-          setMaterial(MATERIALES[0])
-          setMedida(MEDIDAS_POR_MATERIAL[MATERIALES[0]][0])
+          const first = materiales[0] ?? ''
+          setMaterial(first)
+          setMedida(first ? MEDIDAS_POR_MATERIAL[first as keyof typeof MEDIDAS_POR_MATERIAL]?.[0] ?? '' : '')
           setProveedorId('')
         }
         onSuccess?.()
@@ -129,7 +132,7 @@ export function EntradaForm({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {MATERIALES.map((m) => (
+            {materiales.map((m) => (
               <SelectItem key={m} value={m}>
                 {m}
               </SelectItem>

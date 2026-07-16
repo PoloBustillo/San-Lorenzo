@@ -11,14 +11,14 @@ import {
 import { ResponsiveTable } from '@/components/responsive-table'
 import { ReportExport } from '@/components/report-export'
 import { Pagination } from '@/components/pagination'
-import { SalidaFilters } from './salida-filters'
 import { SalidaForm } from './salida-form'
 import { SalidaDetail } from './salida-detail'
 import { SalidaDelete } from './salida-delete'
 import { SalidaTicket } from './salida-ticket'
 import { Button } from '@/components/ui/button'
 import { Pencil } from 'lucide-react'
-import { obtenerConfiguracion, obtenerUmbrales } from '@/app/actions/configuracion'
+import { obtenerConfiguracion } from '@/app/actions/configuracion'
+import { FilterBar } from '@/components/filter-bar'
 
 const PAGE_SIZE = 20
 
@@ -50,7 +50,7 @@ export default async function SalidasPage({
       : {}),
   }
 
-  const [salidas, total, todasSalidas, config, umbrales] = await Promise.all([
+  const [salidas, total, todasSalidas, config] = await Promise.all([
     prisma.salida.findMany({
       where,
       include: { entradas: { include: { proveedor: true } } },
@@ -60,15 +60,14 @@ export default async function SalidasPage({
     }),
     prisma.salida.count({ where }),
     prisma.salida.findMany({
+      where,
       include: { entradas: { include: { proveedor: true } } },
       orderBy: { numero: 'desc' },
     }),
     obtenerConfiguracion(),
-    obtenerUmbrales(),
   ])
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
-  const umbralesMap = new Map(umbrales.map((u) => [u.material, u.precioPorKg ?? 0]))
 
   const empresa = {
     nombre: config.EMPRESA_NOMBRE ?? 'Aserradero San Lorenzo',
@@ -125,7 +124,10 @@ export default async function SalidasPage({
           />
         </CardHeader>
         <CardContent className="space-y-4">
-          <SalidaFilters />
+          <FilterBar
+            basePath="/salidas"
+            fields={['numero', 'fechaDesde', 'fechaHasta']}
+          />
 
           <ResponsiveTable>
             <Table>
@@ -174,7 +176,7 @@ export default async function SalidasPage({
                                 medida: e.medida,
                                 pesoKg: e.pesoKg,
                                 proveedor: e.proveedor.nombre,
-                                precioPorKg: umbralesMap.get(e.material) ?? 0,
+                                precioPorKg: e.precioPorKg ?? 0,
                               })),
                             }}
                           />

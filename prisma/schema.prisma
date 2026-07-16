@@ -44,6 +44,7 @@ model Entrada {
   material    String
   medida      String
   pesoKg      Float
+  precioPorKg Float?
   estatus     Estatus @default(EnInventario)
   salidaId    String?
   salida      Salida? @relation(fields: [salidaId], references: [id])
@@ -87,5 +88,19 @@ model AuditLog {
   entity    String
   entityId  String?
   details   Json?
+  createdAt DateTime @default(now())
+}
+
+model CatalogoMaterial {
+  id   String @id @default(uuid())
+  nombre String @unique
+  activo Boolean @default(true)
+  createdAt DateTime @default(now())
+}
+
+model CatalogoMedida {
+  id   String @id @default(uuid())
+  nombre String @unique
+  activo Boolean @default(true)
   createdAt DateTime @default(now())
 }

@@ -9,7 +9,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -24,6 +23,7 @@ import {
 } from '@/components/ui/table'
 import { ResponsiveTable } from '@/components/responsive-table'
 import { toast } from 'sonner'
+import { CheckSquare, Square } from 'lucide-react'
 
 type EntradaDisponible = Awaited<ReturnType<typeof obtenerEntradasDisponibles>>[number]
 
@@ -79,8 +79,22 @@ export function SalidaForm({ salida, trigger }: { salida?: SalidaEdit; trigger?:
     setSelected(next)
   }
 
-  async function handleSubmit(formData: FormData) {
+  function selectAll() {
+    setSelected(new Set(filtered.map((e) => e.id)))
+  }
+
+  function clearSelection() {
+    setSelected(new Set())
+  }
+
+  function handleSubmit() {
+    if (selected.size === 0) return
+    const formData = new FormData()
+    formData.set('fecha', (document.getElementById('fecha-salida') as HTMLInputElement).value)
+    const numeroInput = document.getElementById('numero-salida') as HTMLInputElement
+    if (numeroInput?.value) formData.set('numero', numeroInput.value)
     selected.forEach((id) => formData.append('entradaIds', id))
+
     startTransition(async () => {
       const result = isEditing
         ? await actualizarSalida(salida!.id, formData)
@@ -98,36 +112,42 @@ export function SalidaForm({ salida, trigger }: { salida?: SalidaEdit; trigger?:
     .filter((e) => selected.has(e.id))
     .reduce((sum, e) => sum + e.pesoKg, 0)
 
+  const allFilteredSelected = filtered.length > 0 && filtered.every((e) => selected.has(e.id))
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={trigger ?? <Button>{isEditing ? 'Editar' : 'Nueva salida'}</Button>} />
-      <DialogContent className="fixed inset-0 top-0 left-0 h-[100dvh] w-screen max-h-none max-w-none translate-x-0 translate-y-0 rounded-none border-0 p-4 sm:p-6 overflow-y-auto sm:max-w-none">
-        <form action={handleSubmit}>
-          <DialogHeader>
+      <DialogContent className="fixed inset-0 top-0 left-0 h-[100dvh] w-screen max-h-none max-w-none translate-x-0 translate-y-0 rounded-none border-0 p-0 sm:max-w-none flex flex-col">
+        {/* Fixed header */}
+        <div className="shrink-0 border-b px-4 py-3 sm:px-6">
+          <DialogHeader className="mb-0">
             <DialogTitle>{isEditing ? 'Editar salida' : 'Nueva salida'}</DialogTitle>
             <DialogDescription>
               {isEditing
-                ? 'Modifica el número, la fecha y los bancos de la salida.'
-                : 'Selecciona las entradas en inventario que se entregarán.'}
+                ? 'Modifica el numero, la fecha y los bancos de la salida.'
+                : 'Selecciona las entradas en inventario que se entregaran.'}
             </DialogDescription>
           </DialogHeader>
+        </div>
 
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="numero-salida">Número de salida (opcional)</Label>
-                <Input
-                  id="numero-salida"
-                  name="numero"
-                  type="number"
-                  min="1"
-                  step="1"
-                  placeholder="Ej. 3292 — automático si se deja vacío"
-                  defaultValue={salida?.numero ?? ''}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="fecha-salida">Fecha</Label>
+        {/* Fixed form fields */}
+        <div className="shrink-0 space-y-3 border-b px-4 py-3 sm:px-6">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="numero-salida" className="text-xs">Numero de salida (opcional)</Label>
+              <Input
+                id="numero-salida"
+                name="numero"
+                type="number"
+                min="1"
+                step="1"
+                placeholder="Automatico si se deja vacio"
+                defaultValue={salida?.numero ?? ''}
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="fecha-salida" className="text-xs">Fecha</Label>
               <Input
                 id="fecha-salida"
                 name="fecha"
@@ -138,82 +158,116 @@ export function SalidaForm({ salida, trigger }: { salida?: SalidaEdit; trigger?:
                     : new Date().toISOString().split('T')[0]
                 }
                 required
-              />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="buscar">Buscar</Label>
-              <Input
-                id="buscar"
-                placeholder="Banco, material o proveedor"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                className="h-9"
               />
             </div>
-
-            <ResponsiveTable>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10"></TableHead>
-                    <TableHead>Banco</TableHead>
-                    <TableHead>Material</TableHead>
-                    <TableHead>Medida</TableHead>
-                    <TableHead>Peso KG</TableHead>
-                    <TableHead>Proveedor</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.length === 0 && (
-                    <TableRow>
-                      <TableCell
-                        colSpan={6}
-                        className="text-center text-muted-foreground"
-                      >
-                        No hay entradas disponibles.
-                      </TableCell>
-                    </TableRow>
-                  )}
-                  {filtered.map((e) => (
-                    <TableRow
-                      key={e.id}
-                      onClick={() => toggle(e.id)}
-                      className="cursor-pointer"
-                    >
-                      <TableCell>
-                        <input
-                          type="checkbox"
-                          checked={selected.has(e.id)}
-                          onChange={() => toggle(e.id)}
-                          className="size-4"
-                        />
-                      </TableCell>
-                      <TableCell>{e.banco}</TableCell>
-                      <TableCell>{e.material}</TableCell>
-                      <TableCell>{e.medida}</TableCell>
-                      <TableCell>{e.pesoKg.toFixed(2)}</TableCell>
-                      <TableCell>{e.proveedor.nombre}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </ResponsiveTable>
-
-            <p className="text-sm text-muted-foreground">
-              Seleccionados: {selected.size} bancos — {pesoTotal.toFixed(2)} KG
-            </p>
           </div>
 
-          <DialogFooter>
+          {/* Search + select all */}
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Buscar banco, material o proveedor..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-9 flex-1"
+            />
             <Button
-              type="submit"
-              disabled={isPending || selected.size === 0}
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0 h-9"
+              onClick={allFilteredSelected ? clearSelection : selectAll}
             >
-              {isPending ? 'Guardando...' : isEditing ? 'Actualizar salida' : 'Guardar salida'}
+              {allFilteredSelected ? 'Limpiar' : `Seleccionar (${filtered.length})`}
             </Button>
-          </DialogFooter>
-        </form>
+          </div>
+        </div>
+
+        {/* Scrollable table */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 sm:px-6">
+          <ResponsiveTable>
+            <Table>
+              <TableHeader className="sticky top-0 z-10 bg-background">
+                <TableRow>
+                  <TableHead className="w-10">
+                    <button
+                      type="button"
+                      onClick={allFilteredSelected ? clearSelection : selectAll}
+                      className="cursor-pointer"
+                    >
+                      {allFilteredSelected ? (
+                        <CheckSquare className="h-4 w-4" />
+                      ) : (
+                        <Square className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </button>
+                  </TableHead>
+                  <TableHead>Banco</TableHead>
+                  <TableHead>Material</TableHead>
+                  <TableHead>Medida</TableHead>
+                  <TableHead>Peso KG</TableHead>
+                  <TableHead>Proveedor</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      No hay entradas disponibles.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {filtered.map((e) => (
+                  <TableRow
+                    key={e.id}
+                    onClick={() => toggle(e.id)}
+                    className="cursor-pointer"
+                  >
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(e.id)}
+                        onChange={() => toggle(e.id)}
+                        className="size-4"
+                      />
+                    </TableCell>
+                    <TableCell>{e.banco}</TableCell>
+                    <TableCell>{e.material}</TableCell>
+                    <TableCell>{e.medida}</TableCell>
+                    <TableCell>{e.pesoKg.toFixed(2)}</TableCell>
+                    <TableCell>{e.proveedor.nombre}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </ResponsiveTable>
+        </div>
+
+        {/* Fixed bottom bar — always visible */}
+        <div className="shrink-0 border-t bg-background px-4 py-3 sm:px-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="text-sm text-muted-foreground">
+              <span className="font-medium text-foreground">{selected.size}</span> bancos seleccionados
+              {' '}&mdash;{' '}
+              <span className="font-medium text-foreground">{pesoTotal.toFixed(2)} KG</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleSubmit}
+                disabled={isPending || selected.size === 0}
+              >
+                {isPending ? 'Guardando...' : isEditing ? 'Actualizar salida' : 'Guardar salida'}
+              </Button>
+            </div>
+          </div>
+        </div>
       </DialogContent>
     </Dialog>
   )

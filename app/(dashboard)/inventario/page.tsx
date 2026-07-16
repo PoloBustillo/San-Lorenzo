@@ -16,11 +16,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { MATERIALES, obtenerCodigoProducto } from '@/lib/constants'
+import { obtenerCodigoProducto } from '@/lib/constants'
 import { ResponsiveTable } from '@/components/responsive-table'
 import { TableExport } from '@/components/table-export'
 import { Pagination } from '@/components/pagination'
 import { ESTATUS_INVENTARIO, cn } from '@/lib/utils'
+import { obtenerCatalogoMateriales } from '@/app/actions/catalogo'
 
 const PAGE_SIZE = 20
 
@@ -33,12 +34,17 @@ export default async function InventarioPage({
   const materialFilter = params.material
   const page = Math.max(1, Number(params.page ?? 1))
 
-  const entradas = await prisma.entrada.findMany({
-    where: {
-      estatus: { in: ESTATUS_INVENTARIO },
-      ...(materialFilter && { material: materialFilter }),
-    },
-  })
+  const [entradas, catalogoMateriales] = await Promise.all([
+    prisma.entrada.findMany({
+      where: {
+        estatus: { in: ESTATUS_INVENTARIO },
+        ...(materialFilter && { material: materialFilter }),
+      },
+    }),
+    obtenerCatalogoMateriales(),
+  ])
+
+  const materiales = catalogoMateriales.map((m) => m.nombre)
 
   const grupos = entradas.reduce(
     (acc, e) => {
@@ -95,7 +101,7 @@ export default async function InventarioPage({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">Todos</SelectItem>
-                  {MATERIALES.map((m) => (
+                  {materiales.map((m) => (
                     <SelectItem key={m} value={m}>
                       {m}
                     </SelectItem>

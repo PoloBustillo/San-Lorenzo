@@ -25,7 +25,7 @@ export function ConfigUmbralesForm({
   materiales,
   umbrales,
 }: {
-  materiales: readonly string[]
+  materiales: string[]
   umbrales: Map<string, Umbral>
 }) {
   const [isPending, startTransition] = useTransition()

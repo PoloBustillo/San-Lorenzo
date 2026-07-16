@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma'
 import * as XLSX from 'xlsx'
-import { MATERIALES, MEDIDAS_POR_MATERIAL } from '@/lib/constants'
+import { MEDIDAS_POR_MATERIAL } from '@/lib/constants'
 import { getWeek } from '@/lib/utils'
 import { checkAuth } from '@/lib/auth-helpers'
 import { revalidateEntradas } from '@/lib/revalidate'
@@ -44,9 +44,7 @@ function parseFecha(value: unknown): Date | null {
 }
 
 function normalizeMaterial(value: string): string | null {
-  const upper = value.toUpperCase().trim()
-  const material = (MATERIALES as readonly string[]).find((m) => m === upper)
-  return material || null
+  return value.toUpperCase().trim() || null
 }
 
 function normalizeMedida(material: string, value: string): string | null {

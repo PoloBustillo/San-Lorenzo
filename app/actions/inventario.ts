@@ -9,6 +9,28 @@ import { crearEntradaSchema, actualizarEntradaSchema } from '@/lib/schemas/entra
 import { crearSalidaSchema } from '@/lib/schemas/salida'
 import type { ActionResult } from '@/lib/types'
 import { logAudit } from '@/lib/audit'
+import type { PrismaClient } from '@prisma/client'
+
+type PrismaTx = Parameters<Parameters<PrismaClient['$transaction']>[0]>[0]
+
+async function snapshotPrecios(tx: PrismaTx, entradaIds: string[]) {
+  const entradas = await tx.entrada.findMany({
+    where: { id: { in: entradaIds } },
+    select: { id: true, material: true },
+  })
+  const materiales = [...new Set(entradas.map((e) => e.material))]
+  const umbrales = await tx.umbralMaterial.findMany({
+    where: { material: { in: materiales } },
+    select: { material: true, precioPorKg: true },
+  })
+  const precioMap = new Map(umbrales.map((u) => [u.material, u.precioPorKg]))
+  for (const e of entradas) {
+    await tx.entrada.update({
+      where: { id: e.id },
+      data: { precioPorKg: precioMap.get(e.material) ?? null },
+    })
+  }
+}
 
 export async function crearProveedor(formData: FormData): Promise<ActionResult> {
   try {
@@ -287,6 +309,7 @@ export async function crearSalida(formData: FormData): Promise<ActionResult> {
         where: { id: { in: entradaIds } },
         data: { estatus: 'Entregado', salidaId: salida.id },
       })
+      await snapshotPrecios(tx, entradaIds)
     })
 
     await logAudit({ userId: session.user.id, action: 'CREAR', entity: 'Salida', details: { entradaIds } })
@@ -359,6 +382,7 @@ export async function actualizarSalida(id: string, formData: FormData): Promise<
         where: { id: { in: entradaIds } },
         data: { estatus: 'Entregado', salidaId: salida.id },
       })
+      await snapshotPrecios(tx, entradaIds)
     })
 
     revalidateSalidas()
@@ -435,9 +459,10 @@ export async function moverBancoASalida(
         throw new Error('El banco no está disponible')
       }
 
+      const umbral = await tx.umbralMaterial.findUnique({ where: { material: entrada.material } })
       await tx.entrada.update({
         where: { id: entradaId },
-        data: { estatus: 'Entregado', salidaId },
+        data: { estatus: 'Entregado', salidaId, precioPorKg: umbral?.precioPorKg ?? null },
       })
     })
 
@@ -514,6 +539,7 @@ export async function crearSalidaRapida(
         where: { id: { in: entradaIds } },
         data: { estatus: 'Entregado', salidaId: s.id },
       })
+      await snapshotPrecios(tx, entradaIds)
       return s
     })
 
