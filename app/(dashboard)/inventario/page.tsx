@@ -4,35 +4,32 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Button, buttonVariants } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { obtenerCodigoProducto } from '@/lib/constants'
 import { ResponsiveTable } from '@/components/responsive-table'
 import { TableExport } from '@/components/table-export'
 import { Pagination } from '@/components/pagination'
-import { ESTATUS_INVENTARIO, cn } from '@/lib/utils'
+import { ESTATUS_INVENTARIO } from '@/lib/utils'
 import { obtenerCatalogoMateriales } from '@/app/actions/catalogo'
+import { SortableHead } from '@/components/sortable-head'
+import { FilterBar } from '@/components/filter-bar'
+import { BarcodeCell } from '@/components/barcode-cell'
+import { MobileCard, MobileCardField, MobileCardList } from '@/components/mobile-card'
 
 const PAGE_SIZE = 20
 
 export default async function InventarioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ material?: string; page?: string }>
+  searchParams: Promise<{ material?: string; page?: string; sortBy?: string; sortOrder?: string }>
 }) {
   const params = await searchParams
   const materialFilter = params.material
   const page = Math.max(1, Number(params.page ?? 1))
+  const sortField = params.sortBy ?? 'codigo'
+  const sortOrder = params.sortOrder === 'asc' ? 1 : -1
 
   const [entradas, catalogoMateriales] = await Promise.all([
     prisma.entrada.findMany({
@@ -64,14 +61,24 @@ export default async function InventarioPage({
     {} as Record<string, { material: string; medida: string; totalKg: number; bancos: number }>
   )
 
-  const allItems = Object.entries(grupos).sort(([a], [b]) => a.localeCompare(b))
+  type Item = { material: string; medida: string; totalKg: number; bancos: number }
+  const allItems = Object.entries(grupos)
+  const sortFns: Record<string, (a: [string, Item], b: [string, Item]) => number> = {
+    codigo: ([a], [b]) => a.localeCompare(b) * sortOrder,
+    material: ([, a], [, b]) => a.material.localeCompare(b.material) * sortOrder,
+    medida: ([, a], [, b]) => a.medida.localeCompare(b.medida) * sortOrder,
+    totalKg: ([, a], [, b]) => (a.totalKg - b.totalKg) * sortOrder,
+    bancos: ([, a], [, b]) => (a.bancos - b.bancos) * sortOrder,
+  }
+  const sortedItems = allItems.sort(sortFns[sortField] ?? sortFns.codigo)
   const totalKg = entradas.reduce((sum, e) => sum + e.pesoKg, 0)
-  const total = allItems.length
+  const total = sortedItems.length
   const totalPages = Math.ceil(total / PAGE_SIZE)
-  const items = allItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const items = sortedItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-  const exportRows = allItems.map(([codigo, item]) => ({
+  const exportRows = sortedItems.map(([codigo, item]) => ({
     Código: codigo,
+    SKU: codigo,
     Material: item.material,
     Medida: item.medida,
     'Total KG': item.totalKg,
@@ -90,32 +97,11 @@ export default async function InventarioPage({
           <CardTitle>Filtro</CardTitle>
         </CardHeader>
         <CardContent>
-          <form action="/inventario" method="GET" className="flex items-end gap-3">
-            <div className="space-y-2">
-              <label htmlFor="material" className="text-sm font-medium">
-                Material
-              </label>
-              <Select name="material" defaultValue={materialFilter ?? ''}>
-                <SelectTrigger className="w-56">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
-                  {materiales.map((m) => (
-                    <SelectItem key={m} value={m}>
-                      {m}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Button type="submit" variant="outline">
-              Filtrar
-            </Button>
-            <a href="/inventario" className={cn(buttonVariants({ variant: 'ghost' }))}>
-              Limpiar
-            </a>
-          </form>
+          <FilterBar
+            basePath="/inventario"
+            fields={['material']}
+            materiales={materiales}
+          />
         </CardContent>
       </Card>
 
@@ -140,44 +126,82 @@ export default async function InventarioPage({
             </div>
           </div>
 
-          <ResponsiveTable>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Código</TableHead>
-                  <TableHead>Material</TableHead>
-                  <TableHead>Medida</TableHead>
-                  <TableHead>Total KG</TableHead>
-                  <TableHead>Cantidad de Bancos</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.length === 0 && (
+          <div className="hidden md:block">
+            <ResponsiveTable>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
-                      No hay inventario disponible.
-                    </TableCell>
+                    <SortableHead label="Código" field="codigo" basePath="/inventario" />
+                    <SortableHead label="Material" field="material" basePath="/inventario" />
+                    <SortableHead label="Medida" field="medida" basePath="/inventario" />
+                    <SortableHead label="Total KG" field="totalKg" basePath="/inventario" />
+                    <SortableHead label="Bancos" field="bancos" basePath="/inventario" />
+                    <th className="h-10 px-2 text-left align-middle font-medium whitespace-nowrap">Código de barras</th>
                   </TableRow>
-                )}
-                {items.map(([codigo, item]) => (
-                  <TableRow key={codigo}>
-                    <TableCell className="font-medium">{codigo}</TableCell>
-                    <TableCell>{item.material}</TableCell>
-                    <TableCell>{item.medida}</TableCell>
-                    <TableCell>{item.totalKg.toFixed(2)}</TableCell>
-                    <TableCell>{item.bancos}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </ResponsiveTable>
+                </TableHeader>
+                <TableBody>
+                  {items.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground">
+                        No hay inventario disponible.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {items.map(([codigo, item]) => (
+                    <TableRow key={codigo}>
+                      <TableCell className="font-medium">{codigo}</TableCell>
+                      <TableCell>{item.material}</TableCell>
+                      <TableCell>{item.medida}</TableCell>
+                      <TableCell>{item.totalKg.toFixed(2)}</TableCell>
+                      <TableCell>{item.bancos}</TableCell>
+                      <TableCell>
+                        <BarcodeCell
+                          codigo={codigo}
+                          material={item.material}
+                          medida={item.medida}
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ResponsiveTable>
+          </div>
+
+          <MobileCardList>
+            {items.length === 0 && (
+              <p className="text-center text-sm text-muted-foreground md:hidden">
+                No hay inventario disponible.
+              </p>
+            )}
+            {items.map(([codigo, item]) => (
+              <MobileCard key={codigo}>
+                <MobileCardField label="Código">{codigo}</MobileCardField>
+                <MobileCardField label="Material">{item.material}</MobileCardField>
+                <MobileCardField label="Medida">{item.medida}</MobileCardField>
+                <MobileCardField label="Total KG">{item.totalKg.toFixed(2)}</MobileCardField>
+                <MobileCardField label="Bancos">{item.bancos}</MobileCardField>
+                <div className="pt-1">
+                  <BarcodeCell
+                    codigo={codigo}
+                    material={item.material}
+                    medida={item.medida}
+                  />
+                </div>
+              </MobileCard>
+            ))}
+          </MobileCardList>
 
           <Pagination
             page={page}
             totalPages={totalPages}
             total={total}
             basePath="/inventario"
-            params={{ material: materialFilter }}
+            params={{
+              material: materialFilter,
+              sortBy: params.sortBy,
+              sortOrder: params.sortOrder,
+            }}
           />
         </CardContent>
       </Card>

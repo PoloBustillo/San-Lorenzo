@@ -17,6 +17,7 @@ import { TableExport } from '@/components/table-export'
 import { UsuarioCreate } from './usuario-create'
 import { UsuarioDelete } from './usuario-delete'
 import { UsuarioEdit } from './usuario-edit'
+import { MobileCard, MobileCardField, MobileCardList } from '@/components/mobile-card'
 
 export default async function UsuariosPage() {
   const session = await auth()
@@ -48,48 +49,77 @@ export default async function UsuariosPage() {
           <TableExport filename="usuarios.xlsx" rows={exportRows} />
         </CardHeader>
         <CardContent>
-          <ResponsiveTable>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Correo</TableHead>
-                  <TableHead>Rol</TableHead>
-                  <TableHead className="w-28 text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {usuarios.length === 0 && (
+          <div className="hidden md:block">
+            <ResponsiveTable>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">
-                      No hay usuarios registrados.
-                    </TableCell>
+                    <TableHead>Nombre</TableHead>
+                    <TableHead>Correo</TableHead>
+                    <TableHead>Rol</TableHead>
+                    <TableHead className="w-28 text-right">Acciones</TableHead>
                   </TableRow>
-                )}
-                {usuarios.map((u) => (
-                  <TableRow key={u.id}>
-                    <TableCell>{u.name || '-'}</TableCell>
-                    <TableCell>{u.email}</TableCell>
-                    <TableCell>
-                      <Badge variant={u.role === 'ADMIN' ? 'default' : 'secondary'}>
-                        {u.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <UsuarioEdit usuario={u} />
-                        <UsuarioDelete
-                          id={u.id}
-                          email={u.email}
-                          isSelf={session.user.id === u.id}
-                        />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </ResponsiveTable>
+                </TableHeader>
+                <TableBody>
+                  {usuarios.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground">
+                        No hay usuarios registrados.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {usuarios.map((u) => (
+                    <TableRow key={u.id}>
+                      <TableCell>{u.name || '-'}</TableCell>
+                      <TableCell>{u.email}</TableCell>
+                      <TableCell>
+                        <Badge variant={u.role === 'ADMIN' ? 'default' : 'secondary'}>
+                          {u.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <UsuarioEdit usuario={u} />
+                          <UsuarioDelete
+                            id={u.id}
+                            email={u.email}
+                            isSelf={session.user.id === u.id}
+                          />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ResponsiveTable>
+          </div>
+
+          <MobileCardList>
+            {usuarios.length === 0 && (
+              <p className="text-center text-sm text-muted-foreground md:hidden">
+                No hay usuarios registrados.
+              </p>
+            )}
+            {usuarios.map((u) => (
+              <MobileCard key={u.id}>
+                <MobileCardField label="Nombre">{u.name || '-'}</MobileCardField>
+                <MobileCardField label="Correo">{u.email}</MobileCardField>
+                <MobileCardField label="Rol">
+                  <Badge variant={u.role === 'ADMIN' ? 'default' : 'secondary'}>
+                    {u.role}
+                  </Badge>
+                </MobileCardField>
+                <div className="flex justify-end gap-2 pt-1">
+                  <UsuarioEdit usuario={u} />
+                  <UsuarioDelete
+                    id={u.id}
+                    email={u.email}
+                    isSelf={session.user.id === u.id}
+                  />
+                </div>
+              </MobileCard>
+            ))}
+          </MobileCardList>
         </CardContent>
       </Card>
     </div>

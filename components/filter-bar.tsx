@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,6 +12,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet'
+import { SlidersHorizontal } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 
 export type FilterField =
   | 'material'
@@ -28,32 +38,76 @@ interface FilterBarProps {
   proveedores?: { id: string; nombre: string }[]
 }
 
-export function FilterBar({
+function navigate(basePath: string, currentParams: URLSearchParams, updates: Record<string, string | null>) {
+  const params = new URLSearchParams(currentParams.toString())
+  for (const [key, val] of Object.entries(updates)) {
+    if (val === null || val === '') {
+      params.delete(key)
+    } else {
+      params.set(key, val)
+    }
+  }
+  params.delete('page')
+  return `${basePath}?${params.toString()}`
+}
+
+function countActiveFilters(searchParams: URLSearchParams, fields: FilterField[]): number {
+  let count = 0
+  for (const field of fields) {
+    const key = field === 'proveedor' ? 'proveedorId' : field
+    if (searchParams.get(key)) count++
+  }
+  return count
+}
+
+interface FilterFieldsInnerProps {
+  basePath: string
+  fields: FilterField[]
+  materiales?: string[]
+  proveedores?: { id: string; nombre: string }[]
+  onClose?: () => void
+}
+
+function FilterFieldsInner({
   basePath,
   fields,
   materiales = [],
   proveedores = [],
-}: FilterBarProps) {
+  onClose,
+}: FilterFieldsInnerProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const formData = new FormData(e.currentTarget)
-    const params = new URLSearchParams()
-    for (const field of fields) {
-      const val = String(formData.get(field) ?? '')
-      if (val) params.set(field, val)
+  const push = useCallback(
+    (url: string) => router.push(url),
+    [router]
+  )
+
+  function onSelect(field: string, value: string | null) {
+    const url = navigate(basePath, searchParams, { [field]: value || null })
+    push(url)
+    onClose?.()
+  }
+
+  function onInputBlur(field: string, e: React.FocusEvent<HTMLInputElement>) {
+    const val = e.target.value.trim()
+    const current = searchParams.get(field) ?? ''
+    if (val !== current) {
+      const url = navigate(basePath, searchParams, { [field]: val || null })
+      push(url)
+      onClose?.()
     }
-    router.push(`${basePath}?${params.toString()}`)
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
+    <div className="flex flex-wrap items-end gap-3">
       {fields.includes('material') && (
         <div className="space-y-2">
           <Label>Material</Label>
-          <Select name="material" defaultValue={searchParams.get('material') ?? ''}>
+          <Select
+            value={searchParams.get('material') ?? ''}
+            onValueChange={(val) => onSelect('material', val)}
+          >
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
@@ -72,7 +126,10 @@ export function FilterBar({
       {fields.includes('estatus') && (
         <div className="space-y-2">
           <Label>Estatus</Label>
-          <Select name="estatus" defaultValue={searchParams.get('estatus') ?? ''}>
+          <Select
+            value={searchParams.get('estatus') ?? ''}
+            onValueChange={(val) => onSelect('estatus', val)}
+          >
             <SelectTrigger className="w-44">
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
@@ -89,7 +146,10 @@ export function FilterBar({
       {fields.includes('proveedor') && (
         <div className="space-y-2">
           <Label>Proveedor</Label>
-          <Select name="proveedorId" defaultValue={searchParams.get('proveedorId') ?? ''}>
+          <Select
+            value={searchParams.get('proveedorId') ?? ''}
+            onValueChange={(val) => onSelect('proveedorId', val)}
+          >
             <SelectTrigger className="w-48">
               <SelectValue placeholder="Todos" />
             </SelectTrigger>
@@ -110,11 +170,11 @@ export function FilterBar({
           <Label>Número</Label>
           <Input
             type="number"
-            name="numero"
             defaultValue={searchParams.get('numero') ?? ''}
             placeholder="N°"
             className="w-28"
             min={1}
+            onBlur={(e) => onInputBlur('numero', e)}
           />
         </div>
       )}
@@ -124,9 +184,9 @@ export function FilterBar({
           <Label>Desde</Label>
           <Input
             type="date"
-            name="fechaDesde"
             defaultValue={searchParams.get('fechaDesde') ?? ''}
             className="w-40"
+            onBlur={(e) => onInputBlur('fechaDesde', e)}
           />
         </div>
       )}
@@ -136,9 +196,9 @@ export function FilterBar({
           <Label>Hasta</Label>
           <Input
             type="date"
-            name="fechaHasta"
             defaultValue={searchParams.get('fechaHasta') ?? ''}
             className="w-40"
+            onBlur={(e) => onInputBlur('fechaHasta', e)}
           />
         </div>
       )}
@@ -148,26 +208,61 @@ export function FilterBar({
           <Label>Semana</Label>
           <Input
             type="number"
-            name="semana"
             defaultValue={searchParams.get('semana') ?? ''}
             placeholder="N°"
             className="w-20"
             min={1}
             max={53}
+            onBlur={(e) => onInputBlur('semana', e)}
           />
         </div>
       )}
 
-      <Button type="submit" variant="outline">
-        Filtrar
-      </Button>
       <Button
         type="button"
         variant="ghost"
-        onClick={() => router.push(basePath)}
+        onClick={() => {
+          router.push(basePath)
+          onClose?.()
+        }}
       >
         Limpiar
       </Button>
-    </form>
+    </div>
+  )
+}
+
+export function FilterBar(props: FilterBarProps) {
+  const searchParams = useSearchParams()
+  const activeCount = countActiveFilters(searchParams, props.fields)
+
+  return (
+    <>
+      <div className="hidden md:block">
+        <FilterFieldsInner {...props} />
+      </div>
+
+      <div className="md:hidden">
+        <Sheet>
+          <SheetTrigger render={<Button variant="outline" size="sm" />}>
+            <SlidersHorizontal className="mr-2 h-4 w-4" />
+            Filtros
+            {activeCount > 0 && (
+              <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 text-xs flex items-center justify-center">
+                {activeCount}
+              </Badge>
+            )}
+          </SheetTrigger>
+          <SheetContent side="bottom" className="h-auto max-h-[80vh]">
+            <SheetHeader>
+              <SheetTitle>Filtros</SheetTitle>
+            </SheetHeader>
+            <div className="px-4 pb-4">
+              <FilterFieldsInner {...props} onClose={() => document.querySelector('[data-slot="sheet-close"]')?.dispatchEvent(new MouseEvent('click'))} />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+    </>
   )
 }

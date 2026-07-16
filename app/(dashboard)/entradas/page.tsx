@@ -4,7 +4,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
@@ -18,6 +17,8 @@ import { EntradaDelete } from './entrada-delete'
 import { EntradaStatus } from './entrada-status'
 import { obtenerCatalogoMateriales } from '@/app/actions/catalogo'
 import { FilterBar } from '@/components/filter-bar'
+import { SortableHead } from '@/components/sortable-head'
+import { MobileCard, MobileCardField, MobileCardList } from '@/components/mobile-card'
 
 const PAGE_SIZE = 20
 
@@ -32,6 +33,8 @@ export default async function EntradasPage({
     fechaDesde?: string
     fechaHasta?: string
     semana?: string
+    sortBy?: string
+    sortOrder?: string
   }>
 }) {
   const params = await searchParams
@@ -42,6 +45,13 @@ export default async function EntradasPage({
   const fechaDesde = params.fechaDesde
   const fechaHasta = params.fechaHasta
   const semanaFilter = params.semana ? Number(params.semana) : undefined
+
+  const sortField = params.sortBy ?? 'fecha'
+  const sortOrder = (params.sortOrder === 'asc' ? 'asc' : 'desc') as 'asc' | 'desc'
+
+  const orderBy = sortField === 'proveedor'
+    ? { proveedor: { nombre: sortOrder } }
+    : { [sortField]: sortOrder }
 
   const where = {
     ...(materialFilter && { material: materialFilter }),
@@ -62,7 +72,7 @@ export default async function EntradasPage({
     prisma.entrada.findMany({
       where,
       include: { proveedor: true },
-      orderBy: { fecha: 'desc' },
+      orderBy,
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
     }),
@@ -71,7 +81,7 @@ export default async function EntradasPage({
     prisma.entrada.findMany({
       where,
       include: { proveedor: true },
-      orderBy: { fecha: 'desc' },
+      orderBy,
     }),
     obtenerCatalogoMateriales(),
   ])
@@ -130,63 +140,93 @@ export default async function EntradasPage({
             proveedores={proveedores}
           />
 
-          <ResponsiveTable>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Semana</TableHead>
-                  <TableHead>Origen</TableHead>
-                  <TableHead>Banco</TableHead>
-                  <TableHead>Material</TableHead>
-                  <TableHead>Medida</TableHead>
-                  <TableHead>Peso KG</TableHead>
-                  <TableHead>Estatus</TableHead>
-                  <TableHead className="w-28 text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {entradas.length === 0 && (
+          <div className="hidden md:block">
+            <ResponsiveTable>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell
-                      colSpan={9}
-                      className="text-center text-muted-foreground"
-                    >
-                      No hay entradas registradas.
-                    </TableCell>
+                    <SortableHead label="Fecha" field="fecha" basePath="/entradas" />
+                    <SortableHead label="Semana" field="semana" basePath="/entradas" />
+                    <SortableHead label="Origen" field="proveedor" basePath="/entradas" />
+                    <SortableHead label="Banco" field="banco" basePath="/entradas" />
+                    <SortableHead label="Material" field="material" basePath="/entradas" />
+                    <SortableHead label="Medida" field="medida" basePath="/entradas" />
+                    <SortableHead label="Peso KG" field="pesoKg" basePath="/entradas" />
+                    <SortableHead label="Estatus" field="estatus" basePath="/entradas" />
+                    <th className="h-10 px-2 text-right align-middle font-medium whitespace-nowrap">Acciones</th>
                   </TableRow>
-                )}
-                {entradas.map((e) => (
-                  <TableRow key={e.id}>
-                    <TableCell>
-                      {e.fecha.toLocaleDateString('es-MX', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                    </TableCell>
-                    <TableCell>{e.semana}</TableCell>
-                    <TableCell>{e.proveedor.nombre}</TableCell>
-                    <TableCell>{e.banco}</TableCell>
-                    <TableCell>{e.material}</TableCell>
-                    <TableCell>{e.medida}</TableCell>
-                    <TableCell>{e.pesoKg.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <EntradaStatus id={e.id} estatus={e.estatus} />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        {(e.estatus === 'EnInventario' || e.estatus === 'EnPreparacion') && (
-                          <EntradaEdit entrada={e} proveedores={proveedores} materiales={materiales} />
-                        )}
-                        <EntradaDelete id={e.id} disabled={e.estatus === 'Entregado'} />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </ResponsiveTable>
+                </TableHeader>
+                <TableBody>
+                  {entradas.length === 0 && (
+                    <TableRow>
+                      <TableCell
+                        colSpan={9}
+                        className="text-center text-muted-foreground"
+                      >
+                        No hay entradas registradas.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {entradas.map((e) => (
+                    <TableRow key={e.id}>
+                      <TableCell>
+                        {e.fecha.toLocaleDateString('es-MX', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                        })}
+                      </TableCell>
+                      <TableCell>{e.semana}</TableCell>
+                      <TableCell>{e.proveedor.nombre}</TableCell>
+                      <TableCell>{e.banco}</TableCell>
+                      <TableCell>{e.material}</TableCell>
+                      <TableCell>{e.medida}</TableCell>
+                      <TableCell>{e.pesoKg.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <EntradaStatus id={e.id} estatus={e.estatus} />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          {(e.estatus === 'EnInventario' || e.estatus === 'EnPreparacion') && (
+                            <EntradaEdit entrada={e} proveedores={proveedores} materiales={materiales} />
+                          )}
+                          <EntradaDelete id={e.id} disabled={e.estatus === 'Entregado'} />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ResponsiveTable>
+          </div>
+
+          <MobileCardList>
+            {entradas.length === 0 && (
+              <p className="text-center text-sm text-muted-foreground md:hidden">
+                No hay entradas registradas.
+              </p>
+            )}
+            {entradas.map((e) => (
+              <MobileCard key={e.id}>
+                <MobileCardField label="Fecha">
+                  {e.fecha.toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' })}
+                </MobileCardField>
+                <MobileCardField label="Banco">{e.banco}</MobileCardField>
+                <MobileCardField label="Material">{e.material} · {e.medida}</MobileCardField>
+                <MobileCardField label="Peso">{e.pesoKg.toFixed(2)} KG</MobileCardField>
+                <MobileCardField label="Origen">{e.proveedor.nombre}</MobileCardField>
+                <MobileCardField label="Estatus">
+                  <EntradaStatus id={e.id} estatus={e.estatus} />
+                </MobileCardField>
+                <div className="flex justify-end gap-2 pt-1">
+                  {(e.estatus === 'EnInventario' || e.estatus === 'EnPreparacion') && (
+                    <EntradaEdit entrada={e} proveedores={proveedores} materiales={materiales} />
+                  )}
+                  <EntradaDelete id={e.id} disabled={e.estatus === 'Entregado'} />
+                </div>
+              </MobileCard>
+            ))}
+          </MobileCardList>
 
           <Pagination
             page={page}
@@ -200,6 +240,8 @@ export default async function EntradasPage({
               fechaDesde,
               fechaHasta,
               semana: params.semana,
+              sortBy: params.sortBy,
+              sortOrder: params.sortOrder,
             }}
           />
         </CardContent>

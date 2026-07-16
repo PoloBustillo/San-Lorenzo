@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { ResponsiveTable } from '@/components/responsive-table'
 import { TableExport } from '@/components/table-export'
 import { ProveedorCreate } from './proveedor-create'
+import { MobileCard, MobileCardField, MobileCardList } from '@/components/mobile-card'
 import { ProveedorDelete } from './proveedor-delete'
 import { ProveedorEdit } from './proveedor-edit'
 
@@ -44,42 +45,66 @@ export default async function ProveedoresPage() {
           <TableExport filename="proveedores.xlsx" rows={exportRows} />
         </CardHeader>
         <CardContent>
-          <ResponsiveTable>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead className="w-28 text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {proveedores.length === 0 && (
+          <div className="hidden md:block">
+            <ResponsiveTable>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground">
-                      No hay proveedores registrados.
-                    </TableCell>
+                    <TableHead>Nombre</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead className="w-28 text-right">Acciones</TableHead>
                   </TableRow>
-                )}
-                {proveedores.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.nombre}</TableCell>
-                    <TableCell>
-                      <Badge variant={p.tipo === 'CLIENTE' ? 'secondary' : 'default'}>
-                        {p.tipo}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <ProveedorEdit proveedor={p} />
-                        <ProveedorDelete id={p.id} isAdmin={session?.user.role === 'ADMIN'} />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </ResponsiveTable>
+                </TableHeader>
+                <TableBody>
+                  {proveedores.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center text-muted-foreground">
+                        No hay proveedores registrados.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {proveedores.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-medium">{p.nombre}</TableCell>
+                      <TableCell>
+                        <Badge variant={p.tipo === 'CLIENTE' ? 'secondary' : 'default'}>
+                          {p.tipo}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <ProveedorEdit proveedor={p} />
+                          <ProveedorDelete id={p.id} isAdmin={session?.user.role === 'ADMIN'} />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ResponsiveTable>
+          </div>
+
+          <MobileCardList>
+            {proveedores.length === 0 && (
+              <p className="text-center text-sm text-muted-foreground md:hidden">
+                No hay proveedores registrados.
+              </p>
+            )}
+            {proveedores.map((p) => (
+              <MobileCard key={p.id}>
+                <MobileCardField label="Nombre">{p.nombre}</MobileCardField>
+                <MobileCardField label="Tipo">
+                  <Badge variant={p.tipo === 'CLIENTE' ? 'secondary' : 'default'}>
+                    {p.tipo}
+                  </Badge>
+                </MobileCardField>
+                <div className="flex justify-end gap-2 pt-1">
+                  <ProveedorEdit proveedor={p} />
+                  <ProveedorDelete id={p.id} isAdmin={session?.user.role === 'ADMIN'} />
+                </div>
+              </MobileCard>
+            ))}
+          </MobileCardList>
         </CardContent>
       </Card>
     </div>

@@ -13,6 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { ResponsiveTable } from '@/components/responsive-table'
 import { previewExcel, importarEntradas, PreviewRow } from '@/app/actions/importar'
 import { toast } from 'sonner'
 
@@ -84,43 +85,45 @@ export function ImportarForm() {
           </div>
 
           <div className="rounded-md border max-h-96 overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Semana</TableHead>
-                  <TableHead>Origen</TableHead>
-                  <TableHead>Banco</TableHead>
-                  <TableHead>Material</TableHead>
-                  <TableHead>Medida</TableHead>
-                  <TableHead>Peso KG</TableHead>
-                  <TableHead>Estado</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {preview.map((row, idx) => (
-                  <TableRow key={idx} className={!row.valido ? 'bg-destructive/10' : undefined}>
-                    <TableCell>{row.fecha || '-'}</TableCell>
-                    <TableCell>{row.semana || '-'}</TableCell>
-                    <TableCell>{row.origen || '-'}</TableCell>
-                    <TableCell>{row.banco || '-'}</TableCell>
-                    <TableCell>{row.material || '-'}</TableCell>
-                    <TableCell>{row.medida || '-'}</TableCell>
-                    <TableCell>{row.pesoKg?.toFixed(2) || '-'}</TableCell>
-                    <TableCell>
-                      {row.valido ? (
-                        <Badge variant="default">OK</Badge>
-                      ) : (
-                        <span className="text-xs text-destructive" title={row.errores.join(', ')}>
-                          {row.errores.slice(0, 2).join(', ')}
-                          {row.errores.length > 2 && '...'}
-                        </span>
-                      )}
-                    </TableCell>
+            <ResponsiveTable>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Semana</TableHead>
+                    <TableHead>Origen</TableHead>
+                    <TableHead>Banco</TableHead>
+                    <TableHead>Material</TableHead>
+                    <TableHead>Medida</TableHead>
+                    <TableHead>Peso KG</TableHead>
+                    <TableHead>Estado</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {preview.map((row, idx) => (
+                    <TableRow key={idx} className={!row.valido ? 'bg-destructive/10' : undefined}>
+                      <TableCell>{row.fecha || '-'}</TableCell>
+                      <TableCell>{row.semana || '-'}</TableCell>
+                      <TableCell>{row.origen || '-'}</TableCell>
+                      <TableCell>{row.banco || '-'}</TableCell>
+                      <TableCell>{row.material || '-'}</TableCell>
+                      <TableCell>{row.medida || '-'}</TableCell>
+                      <TableCell>{row.pesoKg?.toFixed(2) || '-'}</TableCell>
+                      <TableCell>
+                        {row.valido ? (
+                          <Badge variant="default">OK</Badge>
+                        ) : (
+                          <span className="text-xs text-destructive" title={row.errores.join(', ')}>
+                            {row.errores.slice(0, 2).join(', ')}
+                            {row.errores.length > 2 && '...'}
+                          </span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ResponsiveTable>
           </div>
 
           <Button onClick={handleImport} disabled={isPending || validas === 0}>

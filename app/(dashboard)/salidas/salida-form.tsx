@@ -245,23 +245,25 @@ export function SalidaForm({ salida, trigger }: { salida?: SalidaEdit; trigger?:
 
         {/* Fixed bottom bar — always visible */}
         <div className="shrink-0 border-t bg-background px-4 py-3 sm:px-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
             <div className="text-sm text-muted-foreground">
               <span className="font-medium text-foreground">{selected.size}</span> bancos seleccionados
               {' '}&mdash;{' '}
               <span className="font-medium text-foreground">{pesoTotal.toFixed(2)} KG</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
+                className="flex-1 sm:flex-none"
               >
                 Cancelar
               </Button>
               <Button
                 onClick={handleSubmit}
                 disabled={isPending || selected.size === 0}
+                className="flex-1 sm:flex-none"
               >
                 {isPending ? 'Guardando...' : isEditing ? 'Actualizar salida' : 'Guardar salida'}
               </Button>

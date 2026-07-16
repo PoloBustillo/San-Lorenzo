@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { signOut } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -42,6 +43,7 @@ const reportes = [
 ]
 
 const adminItems = [
+  { href: '/catalogo', label: 'Catálogo', icon: Package },
   { href: '/proveedores', label: 'Proveedores', icon: FileText },
   { href: '/importar', label: 'Importar', icon: Upload },
   { href: '/usuarios', label: 'Usuarios', icon: Users },
@@ -58,7 +60,14 @@ export function Navbar({
   user: { name?: string | null; email?: string | null; role?: string }
 }) {
   const pathname = usePathname()
+  const [sheetOpen, setSheetOpen] = useState(false)
   const isAdmin = user.role === 'ADMIN'
+
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    setSheetOpen(false)
+  }, [pathname])
+  /* eslint-enable react-hooks/set-state-in-effect */
   const isOperacionesActive = operaciones.some((item) => isActive(pathname, item.href))
   const isReportesActive = reportes.some((item) => isActive(pathname, item.href))
   const isAdminActive = adminItems.some((item) => isActive(pathname, item.href))
@@ -68,7 +77,7 @@ export function Navbar({
       <div className="mx-auto flex h-14 w-full max-w-7xl items-center justify-between px-4 md:px-6">
         {/* Left: Logo + Mobile menu */}
         <div className="flex items-center gap-2">
-          <Sheet>
+          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger
               render={
                 <Button variant="ghost" size="icon" className="md:hidden">
