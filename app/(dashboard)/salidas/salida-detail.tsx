@@ -66,7 +66,7 @@ export function SalidaDetail({ salida }: { salida: SalidaConEntradas }) {
           </Button>
         }
       />
-      <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] w-[95vw] sm:max-w-[1400px] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>SALIDA {salida.numero}</DialogTitle>
           <DialogDescription>

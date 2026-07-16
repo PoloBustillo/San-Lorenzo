@@ -31,6 +31,7 @@ export function Pagination({ page, totalPages, total, basePath, params = {} }: P
           variant="outline"
           size="sm"
           render={<Link href={buildHref(page - 1)} />}
+          nativeButton={false}
           disabled={page <= 1}
         >
           <ChevronLeft className="h-4 w-4" />
@@ -40,6 +41,7 @@ export function Pagination({ page, totalPages, total, basePath, params = {} }: P
           variant="outline"
           size="sm"
           render={<Link href={buildHref(page + 1)} />}
+          nativeButton={false}
           disabled={page >= totalPages}
         >
           Siguiente

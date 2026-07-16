@@ -81,7 +81,7 @@ export function SalidaTicket({ salida }: { salida: SalidaTicketData }) {
           </Button>
         }
       />
-      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+      <DialogContent className="max-h-[90vh] w-[95vw] sm:max-w-[1000px] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Vista previa — Remisión SALIDA {salida.numero}</DialogTitle>
         </DialogHeader>
