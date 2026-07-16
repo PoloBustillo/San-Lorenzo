@@ -8,12 +8,13 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
-  password  String
-  role      Role     @default(OPERADOR)
-  createdAt DateTime @default(now())
+  id         String      @id @default(uuid())
+  email      String      @unique
+  name       String?
+  password   String
+  role       Role        @default(OPERADOR)
+  auditLogs  AuditLog[]
+  createdAt  DateTime    @default(now())
 }
 
 enum Role {
@@ -76,4 +77,15 @@ model UmbralMaterial {
   minBancos   Int?
   minKg       Float?
   precioPorKg Float?
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  details   Json?
+  createdAt DateTime @default(now())
 }

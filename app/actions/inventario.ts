@@ -8,10 +8,11 @@ import { crearProveedorSchema, actualizarProveedorSchema } from '@/lib/schemas/p
 import { crearEntradaSchema, actualizarEntradaSchema } from '@/lib/schemas/entrada'
 import { crearSalidaSchema } from '@/lib/schemas/salida'
 import type { ActionResult } from '@/lib/types'
+import { logAudit } from '@/lib/audit'
 
 export async function crearProveedor(formData: FormData): Promise<ActionResult> {
   try {
-    await checkAuth()
+    const session = await checkAuth()
     const parsed = crearProveedorSchema.safeParse({
       nombre: formData.get('nombre'),
       tipo: formData.get('tipo'),
@@ -21,6 +22,7 @@ export async function crearProveedor(formData: FormData): Promise<ActionResult> 
     }
 
     await prisma.proveedor.create({ data: parsed.data })
+    await logAudit({ userId: session.user.id, action: 'CREAR', entity: 'Proveedor', details: parsed.data })
     revalidateProveedores()
     return { success: true }
   } catch (error) {
@@ -31,8 +33,9 @@ export async function crearProveedor(formData: FormData): Promise<ActionResult> 
 
 export async function eliminarProveedor(id: string): Promise<ActionResult> {
   try {
-    await checkAuth()
+    const session = await checkAuth()
     await prisma.proveedor.delete({ where: { id } })
+    await logAudit({ userId: session.user.id, action: 'ELIMINAR', entity: 'Proveedor', entityId: id })
     revalidateProveedores()
     return { success: true }
   } catch (error) {
@@ -72,7 +75,7 @@ export async function actualizarProveedor(id: string, formData: FormData): Promi
 
 export async function crearEntrada(formData: FormData): Promise<ActionResult> {
   try {
-    await checkAuth()
+    const session = await checkAuth()
     const parsed = crearEntradaSchema.safeParse({
       fecha: formData.get('fecha'),
       proveedorId: formData.get('proveedorId'),
@@ -93,6 +96,7 @@ export async function crearEntrada(formData: FormData): Promise<ActionResult> {
       data: { ...rest, fecha, semana, pesoKg },
     })
 
+    await logAudit({ userId: session.user.id, action: 'CREAR', entity: 'Entrada', details: { banco: rest.banco, material: rest.material } })
     revalidateEntradas()
     return { success: true }
   } catch (error) {
@@ -103,13 +107,14 @@ export async function crearEntrada(formData: FormData): Promise<ActionResult> {
 
 export async function eliminarEntrada(id: string): Promise<ActionResult> {
   try {
-    await checkAuth()
+    const session = await checkAuth()
     const entrada = await prisma.entrada.findUnique({ where: { id } })
     if (!entrada) return { success: false, error: 'Entrada no encontrada' }
     if (entrada.estatus === 'Entregado') {
       return { success: false, error: 'No se puede eliminar una entrada entregada' }
     }
     await prisma.entrada.delete({ where: { id } })
+    await logAudit({ userId: session.user.id, action: 'ELIMINAR', entity: 'Entrada', entityId: id })
     revalidateEntradas()
     return { success: true }
   } catch (error) {
@@ -233,7 +238,7 @@ async function syncSalidaNumeroSequence(
 
 export async function crearSalida(formData: FormData): Promise<ActionResult> {
   try {
-    await checkAuth()
+    const session = await checkAuth()
     const entradaIds = formData.getAll('entradaIds').map((v) => String(v))
 
     const parsed = crearSalidaSchema.safeParse({
@@ -284,6 +289,7 @@ export async function crearSalida(formData: FormData): Promise<ActionResult> {
       })
     })
 
+    await logAudit({ userId: session.user.id, action: 'CREAR', entity: 'Salida', details: { entradaIds } })
     revalidateSalidas()
     return { success: true }
   } catch (error) {
@@ -365,7 +371,7 @@ export async function actualizarSalida(id: string, formData: FormData): Promise<
 
 export async function eliminarSalida(id: string): Promise<ActionResult> {
   try {
-    await checkAuth()
+    const session = await checkAuth()
     await prisma.$transaction(async (tx) => {
       await tx.entrada.updateMany({
         where: { salidaId: id },
@@ -374,6 +380,7 @@ export async function eliminarSalida(id: string): Promise<ActionResult> {
       await tx.salida.delete({ where: { id } })
     })
 
+    await logAudit({ userId: session.user.id, action: 'ELIMINAR', entity: 'Salida', entityId: id })
     revalidateSalidas()
     return { success: true }
   } catch (error) {

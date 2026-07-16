@@ -9,7 +9,9 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { ResponsiveTable } from '@/components/responsive-table'
-import { TableExport } from '@/components/table-export'
+import { ReportExport } from '@/components/report-export'
+import { Pagination } from '@/components/pagination'
+import { SalidaFilters } from './salida-filters'
 import { SalidaForm } from './salida-form'
 import { SalidaDetail } from './salida-detail'
 import { SalidaDelete } from './salida-delete'
@@ -18,8 +20,45 @@ import { Button } from '@/components/ui/button'
 import { Pencil } from 'lucide-react'
 import { obtenerConfiguracion, obtenerUmbrales } from '@/app/actions/configuracion'
 
-export default async function SalidasPage() {
-  const [salidas, config, umbrales] = await Promise.all([
+const PAGE_SIZE = 20
+
+export default async function SalidasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    page?: string
+    numero?: string
+    fechaDesde?: string
+    fechaHasta?: string
+  }>
+}) {
+  const params = await searchParams
+  const page = Math.max(1, Number(params.page ?? 1))
+  const numeroFilter = params.numero ? Number(params.numero) : undefined
+  const fechaDesde = params.fechaDesde
+  const fechaHasta = params.fechaHasta
+
+  const where = {
+    ...(numeroFilter && { numero: numeroFilter }),
+    ...(fechaDesde || fechaHasta
+      ? {
+          fecha: {
+            ...(fechaDesde && { gte: new Date(fechaDesde + 'T00:00:00') }),
+            ...(fechaHasta && { lte: new Date(fechaHasta + 'T23:59:59') }),
+          },
+        }
+      : {}),
+  }
+
+  const [salidas, total, todasSalidas, config, umbrales] = await Promise.all([
+    prisma.salida.findMany({
+      where,
+      include: { entradas: { include: { proveedor: true } } },
+      orderBy: { numero: 'desc' },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.salida.count({ where }),
     prisma.salida.findMany({
       include: { entradas: { include: { proveedor: true } } },
       orderBy: { numero: 'desc' },
@@ -28,6 +67,7 @@ export default async function SalidasPage() {
     obtenerUmbrales(),
   ])
 
+  const totalPages = Math.ceil(total / PAGE_SIZE)
   const umbralesMap = new Map(umbrales.map((u) => [u.material, u.precioPorKg ?? 0]))
 
   const empresa = {
@@ -38,7 +78,7 @@ export default async function SalidasPage() {
   }
   const ivaPorcentaje = Number(config.IVA_PORCENTAJE ?? 16)
 
-  const exportRows = salidas.flatMap((s) => {
+  const exportRows = todasSalidas.flatMap((s) => {
     const fecha = s.fecha.toISOString().split('T')[0]
     if (s.entradas.length === 0) {
       return [{
@@ -75,9 +115,18 @@ export default async function SalidasPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Listado de salidas</CardTitle>
-          <TableExport filename="salidas.xlsx" rows={exportRows} />
+          <ReportExport
+            filename="salidas.pdf"
+            title="Reporte de Salidas"
+            headers={['Salida', 'Fecha', 'Banco', 'Material', 'Medida', 'Peso KG', 'Proveedor']}
+            rows={exportRows.map((r) => [r.Salida, r.Fecha, r.Banco, r.Material, r.Medida, r['Peso KG'], r.Proveedor])}
+            exportRows={exportRows}
+            subtitle={`Generado el ${new Date().toLocaleDateString('es-MX')}`}
+          />
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <SalidaFilters />
+
           <ResponsiveTable>
             <Table>
               <TableHeader>
@@ -152,6 +201,13 @@ export default async function SalidasPage() {
               </TableBody>
             </Table>
           </ResponsiveTable>
+
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            basePath="/salidas"
+          />
         </CardContent>
       </Card>
     </div>

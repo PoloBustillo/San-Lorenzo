@@ -1,13 +1,26 @@
 'use client'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts'
 
 export function DashboardChart({
   data,
 }: {
   data: { fecha: string; entradasKg: number; salidasKg: number }[]
 }) {
-  const maxVal = Math.max(...data.flatMap((d) => [d.entradasKg, d.salidasKg]), 1)
+  const chartData = data.map((d) => ({
+    ...d,
+    label: d.fecha.slice(5),
+  }))
 
   return (
     <Card>
@@ -15,44 +28,40 @@ export function DashboardChart({
         <CardTitle>Movimiento últimos 30 días (KG)</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="flex h-48 items-end gap-0.5 overflow-x-auto pb-2">
-          {data.map((d) => {
-            const entHeight = (d.entradasKg / maxVal) * 100
-            const salHeight = (d.salidasKg / maxVal) * 100
-            const label = d.fecha.slice(5)
-            return (
-              <div
-                key={d.fecha}
-                className="flex min-w-3 flex-1 flex-col items-center gap-0.5"
-                title={`${d.fecha}: Ent ${d.entradasKg} KG / Sal ${d.salidasKg} KG`}
-              >
-                <div className="flex h-36 w-full items-end justify-center gap-px">
-                  <div
-                    className="w-1.5 rounded-t bg-emerald-500"
-                    style={{ height: `${entHeight}%`, minHeight: d.entradasKg > 0 ? '2px' : '0' }}
-                  />
-                  <div
-                    className="w-1.5 rounded-t bg-orange-500"
-                    style={{ height: `${salHeight}%`, minHeight: d.salidasKg > 0 ? '2px' : '0' }}
-                  />
-                </div>
-                {data.length <= 15 && (
-                  <span className="text-[9px] text-muted-foreground">{label}</span>
-                )}
-              </div>
-            )
-          })}
-        </div>
-        <div className="mt-3 flex gap-4 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <span className="inline-block h-2 w-2 rounded-sm bg-emerald-500" />
-            Entradas
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="inline-block h-2 w-2 rounded-sm bg-orange-500" />
-            Salidas
-          </span>
-        </div>
+        {data.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sin datos de movimiento.</p>
+        ) : (
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis
+                dataKey="label"
+                tick={{ fontSize: 10 }}
+                className="text-muted-foreground"
+              />
+              <YAxis tick={{ fontSize: 10 }} className="text-muted-foreground" />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--card))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                }}
+                formatter={(value, name) => [
+                  `${Number(value).toFixed(2)} KG`,
+                  name === 'entradasKg' ? 'Entradas' : 'Salidas',
+                ]}
+              />
+              <Legend
+                formatter={(value: string) =>
+                  value === 'entradasKg' ? 'Entradas' : 'Salidas'
+                }
+              />
+              <Bar dataKey="entradasKg" fill="#10b981" radius={[2, 2, 0, 0]} />
+              <Bar dataKey="salidasKg" fill="#f97316" radius={[2, 2, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </CardContent>
     </Card>
   )
@@ -63,7 +72,6 @@ export function InventarioChart({
 }: {
   data: { material: string; bancos: number; kg: number }[]
 }) {
-  const maxKg = Math.max(...data.map((d) => d.kg), 1)
   const top = data.slice(0, 8)
 
   return (
@@ -71,26 +79,34 @@ export function InventarioChart({
       <CardHeader>
         <CardTitle>Inventario por material (KG)</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        {top.length === 0 && (
+      <CardContent>
+        {top.length === 0 ? (
           <p className="text-sm text-muted-foreground">Sin inventario disponible.</p>
-        )}
-        {top.map((item) => (
-          <div key={item.material} className="space-y-1">
-            <div className="flex justify-between text-sm">
-              <span className="truncate font-medium">{item.material}</span>
-              <span className="text-muted-foreground">
-                {item.kg.toFixed(2)} KG · {item.bancos} bancos
-              </span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary"
-                style={{ width: `${(item.kg / maxKg) * 100}%` }}
+        ) : (
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={top} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis type="number" tick={{ fontSize: 10 }} className="text-muted-foreground" />
+              <YAxis
+                dataKey="material"
+                type="category"
+                width={120}
+                tick={{ fontSize: 11 }}
+                className="text-muted-foreground"
               />
-            </div>
-          </div>
-        ))}
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'hsl(var(--card))',
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px',
+                  fontSize: '12px',
+                }}
+                formatter={(value) => [`${Number(value).toFixed(2)} KG`, 'Peso']}
+              />
+              <Bar dataKey="kg" fill="#3b82f6" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </CardContent>
     </Card>
   )

@@ -19,16 +19,19 @@ import {
 import { MATERIALES, obtenerCodigoProducto } from '@/lib/constants'
 import { ResponsiveTable } from '@/components/responsive-table'
 import { TableExport } from '@/components/table-export'
-import { ESTATUS_INVENTARIO } from '@/lib/utils'
-import { cn } from '@/lib/utils'
+import { Pagination } from '@/components/pagination'
+import { ESTATUS_INVENTARIO, cn } from '@/lib/utils'
+
+const PAGE_SIZE = 20
 
 export default async function InventarioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ material?: string }>
+  searchParams: Promise<{ material?: string; page?: string }>
 }) {
   const params = await searchParams
   const materialFilter = params.material
+  const page = Math.max(1, Number(params.page ?? 1))
 
   const entradas = await prisma.entrada.findMany({
     where: {
@@ -55,10 +58,13 @@ export default async function InventarioPage({
     {} as Record<string, { material: string; medida: string; totalKg: number; bancos: number }>
   )
 
-  const items = Object.entries(grupos).sort(([a], [b]) => a.localeCompare(b))
+  const allItems = Object.entries(grupos).sort(([a], [b]) => a.localeCompare(b))
   const totalKg = entradas.reduce((sum, e) => sum + e.pesoKg, 0)
+  const total = allItems.length
+  const totalPages = Math.ceil(total / PAGE_SIZE)
+  const items = allItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-  const exportRows = items.map(([codigo, item]) => ({
+  const exportRows = allItems.map(([codigo, item]) => ({
     Código: codigo,
     Material: item.material,
     Medida: item.medida,
@@ -124,7 +130,7 @@ export default async function InventarioPage({
             </div>
             <div className="rounded-lg border p-3">
               <p className="text-xs text-muted-foreground">Códigos</p>
-              <p className="text-2xl font-bold">{items.length}</p>
+              <p className="text-2xl font-bold">{total}</p>
             </div>
           </div>
 
@@ -159,6 +165,14 @@ export default async function InventarioPage({
               </TableBody>
             </Table>
           </ResponsiveTable>
+
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            total={total}
+            basePath="/inventario"
+            params={{ material: materialFilter }}
+          />
         </CardContent>
       </Card>
     </div>

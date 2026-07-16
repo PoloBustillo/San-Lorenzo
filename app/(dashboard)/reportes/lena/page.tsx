@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table'
 import { MATERIALES_LENA, obtenerCodigoProducto } from '@/lib/constants'
 import { ResponsiveTable } from '@/components/responsive-table'
-import { TableExport } from '@/components/table-export'
+import { ReportExport } from '@/components/report-export'
 import { ESTATUS_INVENTARIO } from '@/lib/utils'
 
 export default async function ReporteLenaPage() {
@@ -79,7 +79,14 @@ export default async function ReporteLenaPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Detalle por código</CardTitle>
-          <TableExport filename="reporte_lena.xlsx" rows={exportRows} />
+          <ReportExport
+            filename="reporte_lena.pdf"
+            title="Reporte Leña"
+            headers={['Código', 'Material', 'Medida', 'Total KG', 'Bancos']}
+            rows={items.map(([codigo, item]) => [codigo, item.material, item.medida, item.totalKg, item.bancos])}
+            exportRows={exportRows}
+            subtitle={`Generado el ${new Date().toLocaleDateString('es-MX')}`}
+          />
         </CardHeader>
         <CardContent>
           <ResponsiveTable>

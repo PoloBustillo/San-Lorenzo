@@ -9,7 +9,7 @@ export function ResponsiveTable({
 }) {
   return (
     <div className={cn('w-full overflow-x-auto rounded-md border', className)}>
-      {children}
+      <div className="min-w-[640px]">{children}</div>
     </div>
   )
 }

@@ -25,6 +25,7 @@ import {
   Settings,
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme-toggle'
+import { GlobalSearch } from '@/components/global-search'
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -176,6 +177,7 @@ export function Navbar({ user }: { user: { name?: string | null; email?: string 
         </nav>
 
         <div className="flex items-center gap-2 md:gap-4">
+          <GlobalSearch />
           <div className="hidden text-sm md:block">
             <p className="font-medium leading-none">{user.name || user.email}</p>
             <p className="text-xs text-muted-foreground">{user.role}</p>

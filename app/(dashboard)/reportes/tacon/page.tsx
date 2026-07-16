@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table'
 import { MATERIALES_TACON, obtenerCodigoProducto } from '@/lib/constants'
 import { ResponsiveTable } from '@/components/responsive-table'
-import { TableExport } from '@/components/table-export'
+import { ReportExport } from '@/components/report-export'
 import { ESTATUS_INVENTARIO } from '@/lib/utils'
 
 export default async function ReporteTaconPage() {
@@ -79,7 +79,14 @@ export default async function ReporteTaconPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Detalle por código</CardTitle>
-          <TableExport filename="reporte_tacon.xlsx" rows={exportRows} />
+          <ReportExport
+            filename="reporte_tacon.pdf"
+            title="Reporte Tacón"
+            headers={['Código', 'Material', 'Medida', 'Total KG', 'Bancos']}
+            rows={items.map(([codigo, item]) => [codigo, item.material, item.medida, item.totalKg, item.bancos])}
+            exportRows={exportRows}
+            subtitle={`Generado el ${new Date().toLocaleDateString('es-MX')}`}
+          />
         </CardHeader>
         <CardContent>
           <ResponsiveTable>

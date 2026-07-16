@@ -1,15 +1,10 @@
 import { auth } from '@/auth'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { DashboardStats } from '@/components/dashboard-stats'
 import { obtenerDatosDashboard } from '@/app/actions/dashboard'
 import { DashboardChart, InventarioChart } from './dashboard-charts'
-import {
-  Package,
-  ArrowDownLeft,
-  ArrowUpRight,
-  Users,
-  AlertTriangle,
-} from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 
 export default async function HomePage() {
@@ -27,44 +22,7 @@ export default async function HomePage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Entradas</CardTitle>
-            <ArrowDownLeft className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalEntradas}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Salidas</CardTitle>
-            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalSalidas}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">En inventario</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.enInventario}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Proveedores</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalProveedores}</div>
-          </CardContent>
-        </Card>
-      </div>
+      <DashboardStats values={stats} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <DashboardChart data={actividadDiaria} />

@@ -55,7 +55,7 @@ export default function LoginPage() {
                 id="email"
                 name="email"
                 type="email"
-                defaultValue="madera@admin.com"
+                placeholder="correo@ejemplo.com"
                 required
               />
             </div>
@@ -65,7 +65,7 @@ export default function LoginPage() {
                 id="password"
                 name="password"
                 type="password"
-                defaultValue="madera@123"
+                placeholder="••••••"
                 required
               />
             </div>
