@@ -1,0 +1,71 @@
+[cmdk-root] {
+  width: 100%;
+}
+
+[cmdk-input] {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.875rem;
+  padding: 0.5rem 0;
+}
+
+[cmdk-input]::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+[cmdk-list] {
+  overflow-y: auto;
+}
+
+[cmdk-group-heading] {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  padding: 0.5rem 0.75rem 0.25rem;
+}
+
+[cmdk-item] {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  border-radius: 0.375rem;
+  margin: 0.125rem 0.25rem;
+  transition: background-color 0.1s;
+}
+
+[cmdk-item][data-selected='true'] {
+  background-color: hsl(var(--accent));
+}
+
+[cmdk-item]:hover {
+  background-color: hsl(var(--accent));
+}
+
+[cmdk-item][data-disabled='true'] {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+[cmdk-empty] {
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+}
+
+[cmdk-separator] {
+  height: 1px;
+  background-color: hsl(var(--border));
+  margin: 0.25rem 0;
+}
+
+[cmdk-overlay] {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+}

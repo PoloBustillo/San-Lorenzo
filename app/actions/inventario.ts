@@ -420,3 +420,177 @@ export async function quitarEntradaDeSalida(
     return { success: false, error: message }
   }
 }
+
+export async function moverBancoASalida(
+  entradaId: string,
+  salidaId: string
+): Promise<ActionResult> {
+  try {
+    const session = await checkAuth()
+
+    await prisma.$transaction(async (tx) => {
+      const entrada = await tx.entrada.findUnique({ where: { id: entradaId } })
+      if (!entrada) throw new Error('Entrada no encontrada')
+      if (!ESTATUS_INVENTARIO.includes(entrada.estatus)) {
+        throw new Error('El banco no está disponible')
+      }
+
+      await tx.entrada.update({
+        where: { id: entradaId },
+        data: { estatus: 'Entregado', salidaId },
+      })
+    })
+
+    await logAudit({ userId: session.user.id, action: 'MOVER', entity: 'Entrada', entityId: entradaId, details: { destino: salidaId } })
+    revalidateSalidas()
+    revalidateEntradas()
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error al mover banco'
+    return { success: false, error: message }
+  }
+}
+
+export async function moverBancoEntreSalidas(
+  entradaId: string,
+  salidaOrigenId: string,
+  salidaDestinoId: string
+): Promise<ActionResult> {
+  try {
+    const session = await checkAuth()
+
+    await prisma.$transaction(async (tx) => {
+      const entrada = await tx.entrada.findFirst({
+        where: { id: entradaId, salidaId: salidaOrigenId },
+      })
+      if (!entrada) throw new Error('El banco no pertenece a la salida origen')
+
+      await tx.entrada.update({
+        where: { id: entradaId },
+        data: { salidaId: salidaDestinoId },
+      })
+
+      const restantesOrigen = await tx.entrada.count({ where: { salidaId: salidaOrigenId } })
+      if (restantesOrigen === 0) {
+        await tx.salida.delete({ where: { id: salidaOrigenId } })
+      }
+    })
+
+    await logAudit({ userId: session.user.id, action: 'MOVER', entity: 'Entrada', entityId: entradaId, details: { origen: salidaOrigenId, destino: salidaDestinoId } })
+    revalidateSalidas()
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error al mover banco entre salidas'
+    return { success: false, error: message }
+  }
+}
+
+export async function crearSalidaRapida(
+  entradaIds: string[]
+): Promise<ActionResult> {
+  try {
+    const session = await checkAuth()
+
+    if (entradaIds.length === 0) {
+      return { success: false, error: 'Selecciona al menos un banco' }
+    }
+
+    const disponibles = await prisma.entrada.findMany({
+      where: { id: { in: entradaIds }, estatus: { in: ESTATUS_INVENTARIO } },
+      select: { id: true },
+    })
+
+    if (disponibles.length !== entradaIds.length) {
+      return { success: false, error: 'Uno o más bancos ya no están disponibles' }
+    }
+
+    const salida = await prisma.$transaction(async (tx) => {
+      const s = await tx.salida.create({
+        data: {
+          entradas: { connect: entradaIds.map((id) => ({ id })) },
+        },
+      })
+      await tx.entrada.updateMany({
+        where: { id: { in: entradaIds } },
+        data: { estatus: 'Entregado', salidaId: s.id },
+      })
+      return s
+    })
+
+    await logAudit({ userId: session.user.id, action: 'CREAR', entity: 'Salida', entityId: salida.id, details: { entradaIds } })
+    revalidateSalidas()
+    revalidateEntradas()
+    return { success: true }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Error al crear salida'
+    return { success: false, error: message }
+  }
+}
+
+export type ArmadoData = {
+  disponibles: {
+    id: string
+    banco: string
+    material: string
+    medida: string
+    pesoKg: number
+    proveedor: { nombre: string }
+  }[]
+  salidas: {
+    id: string
+    numero: number
+    fecha: string
+    entradas: {
+      id: string
+      banco: string
+      material: string
+      medida: string
+      pesoKg: number
+      proveedor: { nombre: string }
+    }[]
+  }[]
+}
+
+export async function obtenerArmado(): Promise<ArmadoData> {
+  await checkAuth()
+  const [entradas, salidas] = await Promise.all([
+    prisma.entrada.findMany({
+      where: { estatus: { in: ESTATUS_INVENTARIO } },
+      include: { proveedor: true },
+      orderBy: [{ material: 'asc' }, { medida: 'asc' }, { fecha: 'asc' }],
+    }),
+    prisma.salida.findMany({
+      include: {
+        entradas: {
+          where: { estatus: { in: ['Entregado', 'EnPreparacion'] } },
+          include: { proveedor: true },
+        },
+      },
+      orderBy: { numero: 'desc' },
+    }),
+  ])
+
+  return {
+    disponibles: entradas.map((e) => ({
+      id: e.id,
+      banco: e.banco,
+      material: e.material,
+      medida: e.medida,
+      pesoKg: e.pesoKg,
+      proveedor: { nombre: e.proveedor.nombre },
+    })),
+    salidas: salidas.map((s) => ({
+      id: s.id,
+      numero: s.numero,
+      fecha: s.fecha.toISOString().split('T')[0],
+      entradas: s.entradas.map((e) => ({
+        id: e.id,
+        banco: e.banco,
+        material: e.material,
+        medida: e.medida,
+        pesoKg: e.pesoKg,
+        proveedor: { nombre: e.proveedor.nombre },
+      })),
+    })),
+  }
+}

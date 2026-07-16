@@ -9,7 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
-import { Button, buttonVariants } from '@/components/ui/button'
+import { buttonVariants } from '@/components/ui/button'
 import { ArmadoFilters } from './armado-filters'
 import { ArmadoExport } from './armado-export'
 import { ResponsiveTable } from '@/components/responsive-table'
