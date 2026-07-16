@@ -274,6 +274,34 @@ export async function obtenerEntradasDisponibles() {
   })
 }
 
+function parseNumeroSalidaOptional(
+  raw: FormDataEntryValue | null
+): { ok: true; numero: number | null } | { ok: false; error: string } {
+  const cleaned = String(raw ?? '')
+    .trim()
+    .replace(/^salida\s*/i, '')
+    .trim()
+  if (!cleaned) return { ok: true, numero: null }
+
+  const numero = Number(cleaned)
+  if (!Number.isInteger(numero) || numero <= 0) {
+    return { ok: false, error: 'El número de salida debe ser un entero positivo' }
+  }
+  return { ok: true, numero }
+}
+
+async function syncSalidaNumeroSequence(
+  tx: Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
+) {
+  await tx.$executeRaw`
+    SELECT setval(
+      pg_get_serial_sequence('"Salida"', 'numero'),
+      COALESCE((SELECT MAX(numero) FROM "Salida"), 1),
+      true
+    )
+  `
+}
+
 export async function crearSalida(formData: FormData): Promise<ActionResult> {
   try {
     await checkAuth()
@@ -290,6 +318,17 @@ export async function crearSalida(formData: FormData): Promise<ActionResult> {
       return { success: false, error: 'Fecha inválida' }
     }
 
+    const numeroParsed = parseNumeroSalidaOptional(formData.get('numero'))
+    if (!numeroParsed.ok) return { success: false, error: numeroParsed.error }
+    const numero = numeroParsed.numero
+
+    if (numero !== null) {
+      const exists = await prisma.salida.findUnique({ where: { numero } })
+      if (exists) {
+        return { success: false, error: `Ya existe la SALIDA ${numero}` }
+      }
+    }
+
     const disponibles = await prisma.entrada.findMany({
       where: { id: { in: entradaIds }, estatus: { in: ESTATUS_INVENTARIO } },
       select: { id: true },
@@ -303,9 +342,13 @@ export async function crearSalida(formData: FormData): Promise<ActionResult> {
       const salida = await tx.salida.create({
         data: {
           fecha,
+          ...(numero !== null ? { numero } : {}),
           entradas: { connect: entradaIds.map((id) => ({ id })) },
         },
       })
+      if (numero !== null) {
+        await syncSalidaNumeroSequence(tx)
+      }
       await tx.entrada.updateMany({
         where: { id: { in: entradaIds } },
         data: { estatus: 'Entregado', salidaId: salida.id },
@@ -340,11 +383,32 @@ export async function actualizarSalida(id: string, formData: FormData): Promise<
       return { success: false, error: 'Fecha inválida' }
     }
 
+    const numeroParsed = parseNumeroSalidaOptional(formData.get('numero'))
+    if (!numeroParsed.ok) return { success: false, error: numeroParsed.error }
+    const numero = numeroParsed.numero
+
     await prisma.$transaction(async (tx) => {
+      const actual = await tx.salida.findUnique({ where: { id } })
+      if (!actual) throw new Error('Salida no encontrada')
+
+      if (numero !== null && numero !== actual.numero) {
+        const exists = await tx.salida.findFirst({
+          where: { numero, NOT: { id } },
+        })
+        if (exists) throw new Error(`Ya existe la SALIDA ${numero}`)
+      }
+
       const salida = await tx.salida.update({
         where: { id },
-        data: { fecha },
+        data: {
+          fecha,
+          ...(numero !== null && numero !== actual.numero ? { numero } : {}),
+        },
       })
+
+      if (numero !== null && numero !== actual.numero) {
+        await syncSalidaNumeroSequence(tx)
+      }
 
       // Devolver todas las entradas anteriores a inventario
       await tx.entrada.updateMany({

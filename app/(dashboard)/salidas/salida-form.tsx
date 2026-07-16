@@ -29,6 +29,7 @@ type EntradaDisponible = Awaited<ReturnType<typeof obtenerEntradasDisponibles>>[
 
 type SalidaEdit = {
   id: string
+  numero: number
   fecha: Date
   entradas: { id: string; banco: string; material: string; medida: string; pesoKg: number; proveedor: { nombre: string } }[]
 }
@@ -106,14 +107,27 @@ export function SalidaForm({ salida, trigger }: { salida?: SalidaEdit; trigger?:
             <DialogTitle>{isEditing ? 'Editar salida' : 'Nueva salida'}</DialogTitle>
             <DialogDescription>
               {isEditing
-                ? 'Modifica la fecha y los bancos de la salida.'
+                ? 'Modifica el número, la fecha y los bancos de la salida.'
                 : 'Selecciona las entradas en inventario que se entregarán.'}
             </DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="fecha-salida">Fecha</Label>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="numero-salida">Número de salida (opcional)</Label>
+                <Input
+                  id="numero-salida"
+                  name="numero"
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="Ej. 3292 — automático si se deja vacío"
+                  defaultValue={salida?.numero ?? ''}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fecha-salida">Fecha</Label>
               <Input
                 id="fecha-salida"
                 name="fecha"
@@ -125,6 +139,7 @@ export function SalidaForm({ salida, trigger }: { salida?: SalidaEdit; trigger?:
                 }
                 required
               />
+              </div>
             </div>
 
             <div className="space-y-2">
