@@ -1,5 +1,3 @@
-import { auth } from '@/auth'
-import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -29,9 +27,6 @@ export default async function EntradasPage({
 }: {
   searchParams: Promise<{ page?: string; material?: string; estatus?: string }>
 }) {
-  const session = await auth()
-  if (!session) redirect('/login')
-
   const params = await searchParams
   const page = Math.max(1, Number(params.page ?? 1))
   const materialFilter = params.material

@@ -9,8 +9,7 @@ import { ConfigUmbralesForm } from './config-umbrales-form'
 
 export default async function ConfiguracionPage() {
   const session = await auth()
-  if (!session) redirect('/login')
-  if (session.user.role !== Role.ADMIN) redirect('/')
+  if (session?.user.role !== Role.ADMIN) redirect('/')
 
   const [config, umbrales] = await Promise.all([
     obtenerConfiguracion(),

@@ -1,5 +1,3 @@
-import { auth } from '@/auth'
-import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -16,9 +14,6 @@ import { TableExport } from '@/components/table-export'
 import { ESTATUS_INVENTARIO } from '@/lib/utils'
 
 export default async function ReporteLenaPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-
   const entradas = await prisma.entrada.findMany({
     where: {
       estatus: { in: ESTATUS_INVENTARIO },

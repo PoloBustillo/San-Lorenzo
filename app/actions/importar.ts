@@ -1,14 +1,12 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import * as XLSX from 'xlsx'
 import { MATERIALES, MEDIDAS_POR_MATERIAL } from '@/lib/constants'
-
-export type ActionResult<T = undefined> =
-  | { success: true; data?: T }
-  | { success: false; error: string }
+import { getWeek } from '@/lib/utils'
+import { checkAuth } from '@/lib/auth-helpers'
+import { revalidateEntradas } from '@/lib/revalidate'
+import type { ActionResult } from '@/lib/types'
 
 export type PreviewRow = {
   fecha?: string
@@ -28,14 +26,6 @@ type NonNullablePreviewRow = PreviewRow & {
   medida: string
   pesoKg: number
   banco: string
-}
-
-function getWeek(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
-  const dayNum = d.getUTCDay() || 7
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
-  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
 }
 
 function parseFecha(value: unknown): Date | null {
@@ -69,8 +59,7 @@ function normalizeMedida(material: string, value: string): string | null {
 
 export async function previewExcel(formData: FormData): Promise<ActionResult<PreviewRow[]>> {
   try {
-    const session = await auth()
-    if (!session) return { success: false, error: 'No autorizado' }
+    await checkAuth()
 
     const file = formData.get('file') as File | null
     if (!file) return { success: false, error: 'No se recibió archivo' }
@@ -138,8 +127,7 @@ export async function previewExcel(formData: FormData): Promise<ActionResult<Pre
 
 export async function importarEntradas(rows: PreviewRow[]): Promise<ActionResult<{ creadas: number; errores: string[] }>> {
   try {
-    const session = await auth()
-    if (!session) return { success: false, error: 'No autorizado' }
+    await checkAuth()
 
     const validas = rows.filter(
       (r): r is NonNullablePreviewRow =>
@@ -186,11 +174,7 @@ export async function importarEntradas(rows: PreviewRow[]): Promise<ActionResult
       return validas.length
     })
 
-    revalidatePath('/entradas')
-    revalidatePath('/inventario')
-    revalidatePath('/salidas')
-    revalidatePath('/reportes/tacon')
-    revalidatePath('/reportes/lena')
+    revalidateEntradas()
 
     return {
       success: true,

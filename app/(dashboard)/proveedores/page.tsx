@@ -1,5 +1,4 @@
 import { auth } from '@/auth'
-import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -19,7 +18,6 @@ import { ProveedorEdit } from './proveedor-edit'
 
 export default async function ProveedoresPage() {
   const session = await auth()
-  if (!session) redirect('/login')
 
   const proveedores = await prisma.proveedor.findMany({
     orderBy: { nombre: 'asc' },
@@ -74,7 +72,7 @@ export default async function ProveedoresPage() {
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <ProveedorEdit proveedor={p} />
-                        <ProveedorDelete id={p.id} isAdmin={session.user.role === 'ADMIN'} />
+                        <ProveedorDelete id={p.id} isAdmin={session?.user.role === 'ADMIN'} />
                       </div>
                     </TableCell>
                   </TableRow>

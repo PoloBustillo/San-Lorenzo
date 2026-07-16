@@ -20,8 +20,7 @@ import { UsuarioEdit } from './usuario-edit'
 
 export default async function UsuariosPage() {
   const session = await auth()
-  if (!session) redirect('/login')
-  if (session.user.role !== Role.ADMIN) redirect('/')
+  if (session?.user.role !== Role.ADMIN) redirect('/')
 
   const usuarios = await prisma.user.findMany({
     orderBy: { createdAt: 'desc' },

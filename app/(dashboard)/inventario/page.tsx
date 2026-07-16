@@ -1,5 +1,3 @@
-import { auth } from '@/auth'
-import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -29,9 +27,6 @@ export default async function InventarioPage({
 }: {
   searchParams: Promise<{ material?: string }>
 }) {
-  const session = await auth()
-  if (!session) redirect('/login')
-
   const params = await searchParams
   const materialFilter = params.material
 

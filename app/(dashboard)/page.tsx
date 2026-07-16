@@ -1,5 +1,4 @@
 import { auth } from '@/auth'
-import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { obtenerDatosDashboard } from '@/app/actions/dashboard'
@@ -15,7 +14,6 @@ import Link from 'next/link'
 
 export default async function HomePage() {
   const session = await auth()
-  if (!session) redirect('/login')
 
   const data = await obtenerDatosDashboard()
   const { stats, actividadDiaria, inventarioMaterial, alertas, actividadReciente } = data
@@ -25,7 +23,7 @@ export default async function HomePage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">
-          Bienvenido, {session.user.name || session.user.email}
+          Bienvenido, {session?.user.name || session?.user.email}
         </p>
       </div>
 

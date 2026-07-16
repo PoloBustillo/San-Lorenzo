@@ -1,40 +1,27 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { MATERIALES, MEDIDAS_POR_MATERIAL } from '@/lib/constants'
-import { ESTATUS_INVENTARIO } from '@/lib/utils'
-
-function getWeek(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
-  const dayNum = d.getUTCDay() || 7
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
-  return Math.ceil((((d.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
-}
-
-async function checkAuth() {
-  const session = await auth()
-  if (!session) throw new Error('No autorizado')
-  return session
-}
-
-export type ActionResult = { success: boolean; error?: string }
+import { ESTATUS_INVENTARIO, getWeek } from '@/lib/utils'
+import { checkAuth } from '@/lib/auth-helpers'
+import { revalidateEntradas, revalidateSalidas, revalidateAll, revalidateProveedores } from '@/lib/revalidate'
+import { crearProveedorSchema, actualizarProveedorSchema } from '@/lib/schemas/proveedor'
+import { crearEntradaSchema, actualizarEntradaSchema } from '@/lib/schemas/entrada'
+import { crearSalidaSchema } from '@/lib/schemas/salida'
+import type { ActionResult } from '@/lib/types'
 
 export async function crearProveedor(formData: FormData): Promise<ActionResult> {
   try {
     await checkAuth()
-    const nombre = String(formData.get('nombre') ?? '').trim()
-    const tipo = String(formData.get('tipo') ?? '') as 'CLIENTE' | 'PROVEEDOR'
-
-    if (!nombre) return { success: false, error: 'El nombre es requerido' }
-    if (!['CLIENTE', 'PROVEEDOR'].includes(tipo)) {
-      return { success: false, error: 'Tipo de proveedor inválido' }
+    const parsed = crearProveedorSchema.safeParse({
+      nombre: formData.get('nombre'),
+      tipo: formData.get('tipo'),
+    })
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0].message }
     }
 
-    await prisma.proveedor.create({ data: { nombre, tipo } })
-    revalidatePath('/proveedores')
+    await prisma.proveedor.create({ data: parsed.data })
+    revalidateProveedores()
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error al crear proveedor'
@@ -46,7 +33,7 @@ export async function eliminarProveedor(id: string): Promise<ActionResult> {
   try {
     await checkAuth()
     await prisma.proveedor.delete({ where: { id } })
-    revalidatePath('/proveedores')
+    revalidateProveedores()
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error al eliminar proveedor'
@@ -60,19 +47,19 @@ export async function eliminarProveedor(id: string): Promise<ActionResult> {
 export async function actualizarProveedor(id: string, formData: FormData): Promise<ActionResult> {
   try {
     await checkAuth()
-    const nombre = String(formData.get('nombre') ?? '').trim()
-    const tipo = String(formData.get('tipo') ?? '') as 'CLIENTE' | 'PROVEEDOR'
-
-    if (!nombre) return { success: false, error: 'El nombre es requerido' }
-    if (!['CLIENTE', 'PROVEEDOR'].includes(tipo)) {
-      return { success: false, error: 'Tipo de proveedor inválido' }
+    const parsed = actualizarProveedorSchema.safeParse({
+      nombre: formData.get('nombre'),
+      tipo: formData.get('tipo'),
+    })
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0].message }
     }
 
     await prisma.proveedor.update({
       where: { id },
-      data: { nombre, tipo },
+      data: parsed.data,
     })
-    revalidatePath('/proveedores')
+    revalidateProveedores()
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error al actualizar proveedor'
@@ -86,55 +73,27 @@ export async function actualizarProveedor(id: string, formData: FormData): Promi
 export async function crearEntrada(formData: FormData): Promise<ActionResult> {
   try {
     await checkAuth()
-    const fechaRaw = String(formData.get('fecha') ?? '')
-    const proveedorId = String(formData.get('proveedorId') ?? '')
-    const banco = String(formData.get('banco') ?? '').trim()
-    const material = String(formData.get('material') ?? '')
-    const medida = String(formData.get('medida') ?? '')
-    const pesoRaw = String(formData.get('pesoKg') ?? '')
-
-    if (!fechaRaw || !proveedorId || !banco || !material || !medida || !pesoRaw) {
-      return { success: false, error: 'Todos los campos son requeridos' }
+    const parsed = crearEntradaSchema.safeParse({
+      fecha: formData.get('fecha'),
+      proveedorId: formData.get('proveedorId'),
+      banco: formData.get('banco'),
+      material: formData.get('material'),
+      medida: formData.get('medida'),
+      pesoKg: formData.get('pesoKg'),
+    })
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0].message }
     }
 
-    if (!(MATERIALES as readonly string[]).includes(material)) {
-      return { success: false, error: 'Material inválido' }
-    }
-
-    const medidasPermitidas = MEDIDAS_POR_MATERIAL[material as keyof typeof MEDIDAS_POR_MATERIAL]
-    if (!(medidasPermitidas as readonly string[]).includes(medida)) {
-      return { success: false, error: 'Medida inválida para el material seleccionado' }
-    }
-
-    const fecha = new Date(fechaRaw + 'T00:00:00')
-    if (isNaN(fecha.getTime())) {
-      return { success: false, error: 'Fecha inválida' }
-    }
-
-    const pesoKg = Number(pesoRaw)
-    if (isNaN(pesoKg) || pesoKg <= 0) {
-      return { success: false, error: 'Peso inválido' }
-    }
-
+    const { fecha: fechaStr, pesoKg, ...rest } = parsed.data
+    const fecha = new Date(fechaStr + 'T00:00:00')
     const semana = getWeek(fecha)
 
     await prisma.entrada.create({
-      data: {
-        fecha,
-        semana,
-        proveedorId,
-        banco,
-        material,
-        medida,
-        pesoKg,
-      },
+      data: { ...rest, fecha, semana, pesoKg },
     })
 
-    revalidatePath('/entradas')
-    revalidatePath('/inventario')
-    revalidatePath('/salidas')
-    revalidatePath('/reportes/tacon')
-    revalidatePath('/reportes/lena')
+    revalidateEntradas()
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error al crear entrada'
@@ -151,11 +110,7 @@ export async function eliminarEntrada(id: string): Promise<ActionResult> {
       return { success: false, error: 'No se puede eliminar una entrada entregada' }
     }
     await prisma.entrada.delete({ where: { id } })
-    revalidatePath('/entradas')
-    revalidatePath('/inventario')
-    revalidatePath('/salidas')
-    revalidatePath('/reportes/tacon')
-    revalidatePath('/reportes/lena')
+    revalidateEntradas()
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error al eliminar entrada'
@@ -172,48 +127,28 @@ export async function actualizarEntrada(id: string, formData: FormData): Promise
       return { success: false, error: 'No se puede editar una entrada entregada' }
     }
 
-    const fechaRaw = String(formData.get('fecha') ?? '')
-    const proveedorId = String(formData.get('proveedorId') ?? '')
-    const banco = String(formData.get('banco') ?? '').trim()
-    const material = String(formData.get('material') ?? '')
-    const medida = String(formData.get('medida') ?? '')
-    const pesoRaw = String(formData.get('pesoKg') ?? '')
-
-    if (!fechaRaw || !proveedorId || !banco || !material || !medida || !pesoRaw) {
-      return { success: false, error: 'Todos los campos son requeridos' }
+    const parsed = actualizarEntradaSchema.safeParse({
+      fecha: formData.get('fecha'),
+      proveedorId: formData.get('proveedorId'),
+      banco: formData.get('banco'),
+      material: formData.get('material'),
+      medida: formData.get('medida'),
+      pesoKg: formData.get('pesoKg'),
+    })
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0].message }
     }
 
-    if (!(MATERIALES as readonly string[]).includes(material)) {
-      return { success: false, error: 'Material inválido' }
-    }
-
-    const medidasPermitidas = MEDIDAS_POR_MATERIAL[material as keyof typeof MEDIDAS_POR_MATERIAL]
-    if (!(medidasPermitidas as readonly string[]).includes(medida)) {
-      return { success: false, error: 'Medida inválida para el material seleccionado' }
-    }
-
-    const fecha = new Date(fechaRaw + 'T00:00:00')
-    if (isNaN(fecha.getTime())) {
-      return { success: false, error: 'Fecha inválida' }
-    }
-
-    const pesoKg = Number(pesoRaw)
-    if (isNaN(pesoKg) || pesoKg <= 0) {
-      return { success: false, error: 'Peso inválido' }
-    }
-
+    const { fecha: fechaStr, pesoKg, ...rest } = parsed.data
+    const fecha = new Date(fechaStr + 'T00:00:00')
     const semana = getWeek(fecha)
 
     await prisma.entrada.update({
       where: { id },
-      data: { fecha, semana, proveedorId, banco, material, medida, pesoKg },
+      data: { ...rest, fecha, semana, pesoKg },
     })
 
-    revalidatePath('/entradas')
-    revalidatePath('/inventario')
-    revalidatePath('/salidas')
-    revalidatePath('/reportes/tacon')
-    revalidatePath('/reportes/lena')
+    revalidateEntradas()
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error al actualizar entrada'
@@ -250,12 +185,7 @@ export async function cambiarEstatusEntrada(
       await prisma.entrada.update({ where: { id }, data: { estatus: statusValue } })
     }
 
-    revalidatePath('/entradas')
-    revalidatePath('/inventario')
-    revalidatePath('/salidas')
-    revalidatePath('/reportes/tacon')
-    revalidatePath('/reportes/lena')
-    revalidatePath('/reportes/armado')
+    revalidateAll()
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error al cambiar estatus'
@@ -264,8 +194,7 @@ export async function cambiarEstatusEntrada(
 }
 
 export async function obtenerEntradasDisponibles() {
-  const session = await auth()
-  if (!session) throw new Error('No autorizado')
+  await checkAuth()
 
   return prisma.entrada.findMany({
     where: { estatus: { in: ESTATUS_INVENTARIO } },
@@ -305,20 +234,20 @@ async function syncSalidaNumeroSequence(
 export async function crearSalida(formData: FormData): Promise<ActionResult> {
   try {
     await checkAuth()
-    const fechaRaw = String(formData.get('fecha') ?? '')
     const entradaIds = formData.getAll('entradaIds').map((v) => String(v))
 
-    if (!fechaRaw) return { success: false, error: 'La fecha es requerida' }
-    if (entradaIds.length === 0) {
-      return { success: false, error: 'Selecciona al menos una entrada' }
+    const parsed = crearSalidaSchema.safeParse({
+      fecha: formData.get('fecha'),
+      numero: formData.get('numero'),
+      entradaIds,
+    })
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0].message }
     }
 
-    const fecha = new Date(fechaRaw + 'T00:00:00')
-    if (isNaN(fecha.getTime())) {
-      return { success: false, error: 'Fecha inválida' }
-    }
+    const fecha = new Date(parsed.data.fecha + 'T00:00:00')
 
-    const numeroParsed = parseNumeroSalidaOptional(formData.get('numero'))
+    const numeroParsed = parseNumeroSalidaOptional(parsed.data.numero ?? null)
     if (!numeroParsed.ok) return { success: false, error: numeroParsed.error }
     const numero = numeroParsed.numero
 
@@ -355,11 +284,7 @@ export async function crearSalida(formData: FormData): Promise<ActionResult> {
       })
     })
 
-    revalidatePath('/salidas')
-    revalidatePath('/entradas')
-    revalidatePath('/inventario')
-    revalidatePath('/reportes/tacon')
-    revalidatePath('/reportes/lena')
+    revalidateSalidas()
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error al crear salida'
@@ -370,20 +295,20 @@ export async function crearSalida(formData: FormData): Promise<ActionResult> {
 export async function actualizarSalida(id: string, formData: FormData): Promise<ActionResult> {
   try {
     await checkAuth()
-    const fechaRaw = String(formData.get('fecha') ?? '')
     const entradaIds = formData.getAll('entradaIds').map((v) => String(v))
 
-    if (!fechaRaw) return { success: false, error: 'La fecha es requerida' }
-    if (entradaIds.length === 0) {
-      return { success: false, error: 'Selecciona al menos una entrada' }
+    const parsed = crearSalidaSchema.safeParse({
+      fecha: formData.get('fecha'),
+      numero: formData.get('numero'),
+      entradaIds,
+    })
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0].message }
     }
 
-    const fecha = new Date(fechaRaw + 'T00:00:00')
-    if (isNaN(fecha.getTime())) {
-      return { success: false, error: 'Fecha inválida' }
-    }
+    const fecha = new Date(parsed.data.fecha + 'T00:00:00')
 
-    const numeroParsed = parseNumeroSalidaOptional(formData.get('numero'))
+    const numeroParsed = parseNumeroSalidaOptional(parsed.data.numero ?? null)
     if (!numeroParsed.ok) return { success: false, error: numeroParsed.error }
     const numero = numeroParsed.numero
 
@@ -410,13 +335,11 @@ export async function actualizarSalida(id: string, formData: FormData): Promise<
         await syncSalidaNumeroSequence(tx)
       }
 
-      // Devolver todas las entradas anteriores a inventario
       await tx.entrada.updateMany({
         where: { salidaId: id },
         data: { estatus: 'EnInventario', salidaId: null },
       })
 
-      // Validar nuevas entradas disponibles
       const disponibles = await tx.entrada.findMany({
         where: { id: { in: entradaIds }, estatus: { in: ESTATUS_INVENTARIO } },
         select: { id: true },
@@ -426,18 +349,13 @@ export async function actualizarSalida(id: string, formData: FormData): Promise<
         throw new Error('Una o más entradas ya no están disponibles')
       }
 
-      // Asignar nuevas entradas a la salida
       await tx.entrada.updateMany({
         where: { id: { in: entradaIds } },
         data: { estatus: 'Entregado', salidaId: salida.id },
       })
     })
 
-    revalidatePath('/salidas')
-    revalidatePath('/entradas')
-    revalidatePath('/inventario')
-    revalidatePath('/reportes/tacon')
-    revalidatePath('/reportes/lena')
+    revalidateSalidas()
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error al actualizar salida'
@@ -456,11 +374,7 @@ export async function eliminarSalida(id: string): Promise<ActionResult> {
       await tx.salida.delete({ where: { id } })
     })
 
-    revalidatePath('/salidas')
-    revalidatePath('/entradas')
-    revalidatePath('/inventario')
-    revalidatePath('/reportes/tacon')
-    revalidatePath('/reportes/lena')
+    revalidateSalidas()
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error al eliminar salida'
@@ -492,11 +406,7 @@ export async function quitarEntradaDeSalida(
       }
     })
 
-    revalidatePath('/salidas')
-    revalidatePath('/entradas')
-    revalidatePath('/inventario')
-    revalidatePath('/reportes/tacon')
-    revalidatePath('/reportes/lena')
+    revalidateSalidas()
     return { success: true }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Error al quitar banco'

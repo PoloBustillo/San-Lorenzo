@@ -1,22 +1,12 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
-import { Role } from '@prisma/client'
-
-export type ActionResult = { success: boolean; error?: string }
-
-async function checkAdmin() {
-  const session = await auth()
-  if (!session) throw new Error('No autorizado')
-  if (session.user.role !== Role.ADMIN) throw new Error('Solo administradores')
-  return session
-}
+import { checkAuth, checkAdmin } from '@/lib/auth-helpers'
+import { revalidatePath } from 'next/cache'
+import type { ActionResult } from '@/lib/types'
 
 export async function obtenerConfiguracion(): Promise<Record<string, string>> {
-  const session = await auth()
-  if (!session) throw new Error('No autorizado')
+  await checkAuth()
 
   const registros = await prisma.configuracion.findMany()
   return registros.reduce(
@@ -50,8 +40,7 @@ export async function actualizarConfiguracion(
 }
 
 export async function obtenerUmbrales() {
-  const session = await auth()
-  if (!session) throw new Error('No autorizado')
+  await checkAuth()
 
   return prisma.umbralMaterial.findMany({ orderBy: { material: 'asc' } })
 }

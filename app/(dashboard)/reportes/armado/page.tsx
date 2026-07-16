@@ -1,5 +1,3 @@
-import { auth } from '@/auth'
-import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -24,9 +22,6 @@ export default async function ArmadoPage({
 }: {
   searchParams: Promise<{ proveedor?: string; material?: string; medida?: string }>
 }) {
-  const session = await auth()
-  if (!session) redirect('/login')
-
   const params = await searchParams
 
   const where = {

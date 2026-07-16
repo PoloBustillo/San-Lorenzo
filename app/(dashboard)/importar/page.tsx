@@ -1,12 +1,7 @@
-import { auth } from '@/auth'
-import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ImportarForm } from './importar-form'
 
 export default async function ImportarPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-
   return (
     <div className="space-y-6">
       <div>

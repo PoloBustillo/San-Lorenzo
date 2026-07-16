@@ -1,45 +1,30 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import { Role } from '@prisma/client'
-
-export type ActionResult = { success: boolean; error?: string }
-
-async function checkAdmin() {
-  const session = await auth()
-  if (!session) throw new Error('No autorizado')
-  if (session.user.role !== Role.ADMIN) throw new Error('Solo administradores')
-  return session
-}
+import { checkAdmin } from '@/lib/auth-helpers'
+import { crearUsuarioSchema, actualizarUsuarioSchema } from '@/lib/schemas/usuario'
+import type { ActionResult } from '@/lib/types'
 
 export async function crearUsuario(formData: FormData): Promise<ActionResult> {
   try {
     await checkAdmin()
 
-    const email = String(formData.get('email') ?? '').trim().toLowerCase()
-    const name = String(formData.get('name') ?? '').trim()
-    const password = String(formData.get('password') ?? '')
-    const role = String(formData.get('role') ?? '') as Role
-
-    if (!email || !password) {
-      return { success: false, error: 'Correo y contraseña son requeridos' }
+    const parsed = crearUsuarioSchema.safeParse({
+      email: formData.get('email'),
+      name: formData.get('name'),
+      password: formData.get('password'),
+      role: formData.get('role'),
+    })
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0].message }
     }
 
-    if (!Object.values(Role).includes(role)) {
-      return { success: false, error: 'Rol inválido' }
-    }
-
-    if (password.length < 6) {
-      return { success: false, error: 'La contraseña debe tener al menos 6 caracteres' }
-    }
-
-    const hashed = await bcrypt.hash(password, 10)
+    const hashed = await bcrypt.hash(parsed.data.password, 10)
 
     await prisma.user.create({
-      data: { email, name, password: hashed, role },
+      data: { ...parsed.data, password: hashed },
     })
 
     revalidatePath('/usuarios')
@@ -57,7 +42,7 @@ export async function eliminarUsuario(id: string): Promise<ActionResult> {
   try {
     await checkAdmin()
 
-    const session = await auth()
+    const session = await import('@/auth').then((m) => m.auth())
     if (session?.user.id === id) {
       return { success: false, error: 'No puedes eliminar tu propio usuario' }
     }
@@ -75,19 +60,19 @@ export async function actualizarUsuario(id: string, formData: FormData): Promise
   try {
     await checkAdmin()
 
-    const name = String(formData.get('name') ?? '').trim()
-    const role = String(formData.get('role') ?? '') as Role
-    const password = String(formData.get('password') ?? '')
-
-    if (!Object.values(Role).includes(role)) {
-      return { success: false, error: 'Rol inválido' }
+    const parsed = actualizarUsuarioSchema.safeParse({
+      name: formData.get('name'),
+      role: formData.get('role'),
+      password: formData.get('password'),
+    })
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0].message }
     }
 
-    const data: { name?: string; role?: Role; password?: string } = { name, role }
+    const { password, ...rest } = parsed.data
+    const data: { name?: string; role?: import('@prisma/client').Role; password?: string } = rest
+
     if (password) {
-      if (password.length < 6) {
-        return { success: false, error: 'La contraseña debe tener al menos 6 caracteres' }
-      }
       data.password = await bcrypt.hash(password, 10)
     }
 

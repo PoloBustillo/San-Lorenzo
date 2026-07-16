@@ -1,14 +1,8 @@
 'use server'
 
-import { auth } from '@/auth'
 import { prisma } from '@/lib/prisma'
 import { ESTATUS_INVENTARIO } from '@/lib/utils'
-
-async function checkAuth() {
-  const session = await auth()
-  if (!session) throw new Error('No autorizado')
-  return session
-}
+import { checkAuth } from '@/lib/auth-helpers'
 
 export async function obtenerDatosDashboard() {
   await checkAuth()

@@ -1,5 +1,3 @@
-import { auth } from '@/auth'
-import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -21,9 +19,6 @@ import { Pencil } from 'lucide-react'
 import { obtenerConfiguracion, obtenerUmbrales } from '@/app/actions/configuracion'
 
 export default async function SalidasPage() {
-  const session = await auth()
-  if (!session) redirect('/login')
-
   const [salidas, config, umbrales] = await Promise.all([
     prisma.salida.findMany({
       include: { entradas: { include: { proveedor: true } } },
