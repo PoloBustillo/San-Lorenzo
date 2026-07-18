@@ -15,7 +15,7 @@ import { EntradaCreate } from './entrada-create'
 import { EntradaEdit } from './entrada-edit'
 import { EntradaDelete } from './entrada-delete'
 import { EntradaStatus } from './entrada-status'
-import { obtenerCatalogoMateriales } from '@/app/actions/catalogo'
+import { obtenerCatalogoMateriales, obtenerProductosActivos } from '@/app/actions/catalogo'
 import { FilterBar } from '@/components/filter-bar'
 import { SortableHead } from '@/components/sortable-head'
 import { MobileCard, MobileCardField, MobileCardList } from '@/components/mobile-card'
@@ -68,7 +68,7 @@ export default async function EntradasPage({
       : {}),
   }
 
-  const [entradas, total, proveedores, todasEntradas, catalogoMateriales] = await Promise.all([
+  const [entradas, total, proveedores, todasEntradas, catalogoMateriales, productos] = await Promise.all([
     prisma.entrada.findMany({
       where,
       include: { proveedor: true },
@@ -84,6 +84,7 @@ export default async function EntradasPage({
       orderBy,
     }),
     obtenerCatalogoMateriales(),
+    obtenerProductosActivos(),
   ])
 
   const materiales = catalogoMateriales.map((m) => m.nombre)
@@ -108,7 +109,7 @@ export default async function EntradasPage({
           <h1 className="text-3xl font-bold tracking-tight">Entradas</h1>
           <p className="text-muted-foreground">Registro de bancos recibidos.</p>
         </div>
-        <EntradaCreate proveedores={proveedores} materiales={materiales} />
+        <EntradaCreate proveedores={proveedores} productos={productos} />
       </div>
 
       <Card>
@@ -188,7 +189,7 @@ export default async function EntradasPage({
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           {(e.estatus === 'EnInventario' || e.estatus === 'EnPreparacion') && (
-                            <EntradaEdit entrada={e} proveedores={proveedores} materiales={materiales} />
+                            <EntradaEdit entrada={e} proveedores={proveedores} productos={productos} />
                           )}
                           <EntradaDelete id={e.id} disabled={e.estatus === 'Entregado'} />
                         </div>
@@ -220,7 +221,7 @@ export default async function EntradasPage({
                 </MobileCardField>
                 <div className="flex justify-end gap-2 pt-1">
                   {(e.estatus === 'EnInventario' || e.estatus === 'EnPreparacion') && (
-                    <EntradaEdit entrada={e} proveedores={proveedores} materiales={materiales} />
+                    <EntradaEdit entrada={e} proveedores={proveedores} productos={productos} />
                   )}
                   <EntradaDelete id={e.id} disabled={e.estatus === 'Entregado'} />
                 </div>

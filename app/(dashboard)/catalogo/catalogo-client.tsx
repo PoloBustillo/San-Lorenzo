@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,6 +32,8 @@ import {
   crearMedida,
   actualizarMedida,
   toggleMedida,
+  toggleProducto,
+  generarProductosDesdeCatalogo,
 } from '@/app/actions/catalogo'
 
 type Material = {
@@ -47,6 +50,14 @@ type Medida = {
   id: string
   nombre: string
   activo: boolean
+}
+
+type Producto = {
+  id: string
+  codigo: string
+  activo: boolean
+  material: { id: string; nombre: string }
+  medida: { id: string; nombre: string }
 }
 
 function MaterialDialog({
@@ -213,19 +224,24 @@ function MedidaDialog({
 export function CatalogoClient({
   materiales: initialMateriales,
   medidas: initialMedidas,
+  productos: initialProductos,
 }: {
   materiales: Material[]
   medidas: Medida[]
+  productos: Producto[]
 }) {
   const [materiales] = useState(initialMateriales)
   const [medidas] = useState(initialMedidas)
+  const [productos] = useState(initialProductos)
   const [matDialogOpen, setMatDialogOpen] = useState(false)
   const [medDialogOpen, setMedDialogOpen] = useState(false)
   const [editingMat, setEditingMat] = useState<Material | undefined>()
   const [editingMed, setEditingMed] = useState<Medida | undefined>()
   const [isPending, startTransition] = useTransition()
+  const router = useRouter()
   const [matFilter, setMatFilter] = useState('')
   const [medFilter, setMedFilter] = useState('')
+  const [prodFilter, setProdFilter] = useState('')
 
   const filteredMateriales = materiales.filter((m) =>
     m.nombre.toLowerCase().includes(matFilter.toLowerCase())
@@ -233,11 +249,15 @@ export function CatalogoClient({
   const filteredMedidas = medidas.filter((m) =>
     m.nombre.toLowerCase().includes(medFilter.toLowerCase())
   )
+  const filteredProductos = productos.filter((p) =>
+    p.codigo.toLowerCase().includes(prodFilter.toLowerCase())
+  )
 
   function handleToggleMaterial(id: string) {
     startTransition(async () => {
       try {
         await toggleMaterial(id)
+        router.refresh()
         toast.success('Material actualizado')
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Error')
@@ -249,7 +269,32 @@ export function CatalogoClient({
     startTransition(async () => {
       try {
         await toggleMedida(id)
+        router.refresh()
         toast.success('Medida actualizada')
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Error')
+      }
+    })
+  }
+
+  function handleToggleProducto(id: string) {
+    startTransition(async () => {
+      try {
+        await toggleProducto(id)
+        router.refresh()
+        toast.success('Producto actualizado')
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Error')
+      }
+    })
+  }
+
+  function handleGenerarProductos() {
+    startTransition(async () => {
+      try {
+        const created = await generarProductosDesdeCatalogo()
+        router.refresh()
+        toast.success(created > 0 ? `${created} productos generados` : 'No hay productos nuevos')
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Error')
       }
@@ -431,6 +476,79 @@ export function CatalogoClient({
                           )}
                         </Button>
                       </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </ResponsiveTable>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Productos (Material × Medida)</CardTitle>
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Buscar..."
+              value={prodFilter}
+              onChange={(e) => setProdFilter(e.target.value)}
+              className="w-40"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleGenerarProductos}
+              disabled={isPending}
+            >
+              Generar todos
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveTable>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Material</TableHead>
+                  <TableHead>Medida</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead className="w-24 text-right">Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProductos.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                      No hay productos. Crea materiales y medidas, luego usa &quot;Generar todos&quot;.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {filteredProductos.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="font-mono text-sm font-medium">{p.codigo}</TableCell>
+                    <TableCell>{p.material.nombre}</TableCell>
+                    <TableCell>{p.medida.nombre}</TableCell>
+                    <TableCell>
+                      <Badge variant={p.activo ? 'default' : 'secondary'}>
+                        {p.activo ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleToggleProducto(p.id)}
+                        disabled={isPending}
+                      >
+                        {p.activo ? (
+                          <ToggleRight className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <ToggleLeft className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -1,6 +1,6 @@
 import { PrismaClient, Role, TipoProveedor } from '@prisma/client'
 import bcrypt from 'bcryptjs'
-import { MATERIALES, MEDIDAS } from '../lib/constants'
+import { MATERIALES, MEDIDAS, obtenerCodigoProducto } from '../lib/constants'
 
 const prisma = new PrismaClient()
 
@@ -71,6 +71,25 @@ async function main() {
       update: {},
       create: { nombre: m },
     })
+  }
+
+  const dbMateriales = await prisma.catalogoMaterial.findMany()
+  const dbMedidas = await prisma.catalogoMedida.findMany()
+
+  for (const mat of dbMateriales) {
+    for (const med of dbMedidas) {
+      const codigo = obtenerCodigoProducto(mat.nombre, med.nombre)
+      await prisma.catalogoProducto.upsert({
+        where: { materialId_medidaId: { materialId: mat.id, medidaId: med.id } },
+        update: {},
+        create: {
+          materialId: mat.id,
+          medidaId: med.id,
+          codigo,
+          activo: true,
+        },
+      })
+    }
   }
 
   console.log('Seed completado.')

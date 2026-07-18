@@ -12,17 +12,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { MEDIDAS_POR_MATERIAL } from '@/lib/constants'
 import { toast } from 'sonner'
+
+type Producto = {
+  id: string
+  codigo: string
+  material: { nombre: string }
+  medida: { nombre: string }
+}
 
 export function EntradaForm({
   proveedores,
-  materiales,
+  productos,
   entrada,
   onSuccess,
 }: {
   proveedores: { id: string; nombre: string }[]
-  materiales: string[]
+  productos: Producto[]
   entrada?: {
     id: string
     fecha: Date
@@ -36,24 +42,24 @@ export function EntradaForm({
 }) {
   const ref = useRef<HTMLFormElement>(null)
   const isEditing = Boolean(entrada)
-  const [material, setMaterial] = useState<string>(entrada?.material ?? materiales[0] ?? '')
-  const [medida, setMedida] = useState<string>(
-    entrada?.medida ?? (materiales[0] ? MEDIDAS_POR_MATERIAL[materiales[0] as keyof typeof MEDIDAS_POR_MATERIAL]?.[0] ?? '' : '')
-  )
+
+  const matchingProducto = entrada
+    ? productos.find(
+        (p) => p.material.nombre === entrada.material && p.medida.nombre === entrada.medida
+      )
+    : null
+
+  const [productoId, setProductoId] = useState<string>(matchingProducto?.id ?? '')
   const [proveedorId, setProveedorId] = useState<string>(entrada?.proveedorId ?? '')
   const [isPending, startTransition] = useTransition()
 
-  const medidas = MEDIDAS_POR_MATERIAL[material as keyof typeof MEDIDAS_POR_MATERIAL]
-
-  function handleMaterialChange(value: string | null) {
-    const nextMaterial = value ?? ''
-    setMaterial(nextMaterial)
-    const nextMedidas =
-      MEDIDAS_POR_MATERIAL[nextMaterial as keyof typeof MEDIDAS_POR_MATERIAL]
-    setMedida(nextMedidas[0])
-  }
+  const selectedProducto = productos.find((p) => p.id === productoId)
 
   async function handleSubmit(formData: FormData) {
+    if (selectedProducto) {
+      formData.set('material', selectedProducto.material.nombre)
+      formData.set('medida', selectedProducto.medida.nombre)
+    }
     startTransition(async () => {
       const result = isEditing
         ? await actualizarEntrada(entrada!.id, formData)
@@ -62,9 +68,7 @@ export function EntradaForm({
         toast.success(isEditing ? 'Entrada actualizada' : 'Entrada registrada')
         if (!isEditing) {
           ref.current?.reset()
-          const first = materiales[0] ?? ''
-          setMaterial(first)
-          setMedida(first ? MEDIDAS_POR_MATERIAL[first as keyof typeof MEDIDAS_POR_MATERIAL]?.[0] ?? '' : '')
+          setProductoId('')
           setProveedorId('')
         }
         onSuccess?.()
@@ -121,45 +125,26 @@ export function EntradaForm({
         <Input id="banco" name="banco" placeholder="Ej. B-001" defaultValue={entrada?.banco} required />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="material">Material</Label>
+        <Label>Producto (Material × Medida)</Label>
         <Select
-          name="material"
-          value={material}
-          onValueChange={handleMaterialChange}
+          value={productoId}
+          onValueChange={(v) => setProductoId(v ?? '')}
           required
         >
           <SelectTrigger className="w-full">
-            <SelectValue />
+            <SelectValue placeholder="Selecciona un producto" />
           </SelectTrigger>
           <SelectContent>
-            {materiales.map((m) => (
-              <SelectItem key={m} value={m}>
-                {m}
+            {productos.map((p) => (
+              <SelectItem key={p.id} value={p.id}>
+                {p.codigo}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
       </div>
-      <div className="space-y-2">
-        <Label htmlFor="medida">Medida</Label>
-        <Select
-          name="medida"
-          value={medida}
-          onValueChange={(v) => setMedida(v ?? '')}
-          required
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {medidas.map((m) => (
-              <SelectItem key={m} value={m}>
-                {m}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <input type="hidden" name="material" value={selectedProducto?.material.nombre ?? ''} />
+      <input type="hidden" name="medida" value={selectedProducto?.medida.nombre ?? ''} />
       <div className="space-y-2">
         <Label htmlFor="pesoKg">Peso KG</Label>
         <Input

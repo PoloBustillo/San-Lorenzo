@@ -6,12 +6,19 @@ import { Plus } from 'lucide-react'
 import { EntityModal } from '@/components/entity-modal'
 import { EntradaForm } from './entrada-form'
 
+type Producto = {
+  id: string
+  codigo: string
+  material: { nombre: string }
+  medida: { nombre: string }
+}
+
 export function EntradaCreate({
   proveedores,
-  materiales,
+  productos,
 }: {
   proveedores: { id: string; nombre: string }[]
-  materiales: string[]
+  productos: Producto[]
 }) {
   const [open, setOpen] = useState(false)
 
@@ -28,7 +35,7 @@ export function EntradaCreate({
         </Button>
       }
     >
-      <EntradaForm proveedores={proveedores} materiales={materiales} onSuccess={() => setOpen(false)} />
+      <EntradaForm proveedores={proveedores} productos={productos} onSuccess={() => setOpen(false)} />
     </EntityModal>
   )
 }

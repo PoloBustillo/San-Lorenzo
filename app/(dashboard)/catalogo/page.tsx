@@ -1,16 +1,17 @@
 import { auth } from '@/auth'
 import { redirect } from 'next/navigation'
 import { Role } from '@prisma/client'
-import { obtenerTodosMateriales, obtenerCatalogoMedidas } from '@/app/actions/catalogo'
+import { obtenerTodosMateriales, obtenerCatalogoMedidas, obtenerCatalogoProductos } from '@/app/actions/catalogo'
 import { CatalogoClient } from './catalogo-client'
 
 export default async function CatalogoPage() {
   const session = await auth()
   if (session?.user.role !== Role.ADMIN) redirect('/')
 
-  const [materiales, medidas] = await Promise.all([
+  const [materiales, medidas, productos] = await Promise.all([
     obtenerTodosMateriales(),
     obtenerCatalogoMedidas(),
+    obtenerCatalogoProductos(),
   ])
 
   return (
@@ -19,7 +20,7 @@ export default async function CatalogoPage() {
         <h1 className="text-3xl font-bold tracking-tight">Catálogo</h1>
         <p className="text-muted-foreground">Gestiona materiales, medidas y productos.</p>
       </div>
-      <CatalogoClient materiales={materiales} medidas={medidas} />
+      <CatalogoClient materiales={materiales} medidas={medidas} productos={productos} />
     </div>
   )
 }

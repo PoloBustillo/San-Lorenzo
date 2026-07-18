@@ -6,10 +6,17 @@ import { Pencil } from 'lucide-react'
 import { EntityModal } from '@/components/entity-modal'
 import { EntradaForm } from './entrada-form'
 
+type Producto = {
+  id: string
+  codigo: string
+  material: { nombre: string }
+  medida: { nombre: string }
+}
+
 export function EntradaEdit({
   entrada,
   proveedores,
-  materiales,
+  productos,
 }: {
   entrada: {
     id: string
@@ -21,7 +28,7 @@ export function EntradaEdit({
     pesoKg: number
   }
   proveedores: { id: string; nombre: string }[]
-  materiales: string[]
+  productos: Producto[]
 }) {
   const [open, setOpen] = useState(false)
 
@@ -36,7 +43,7 @@ export function EntradaEdit({
         </Button>
       }
     >
-      <EntradaForm entrada={entrada} proveedores={proveedores} materiales={materiales} onSuccess={() => setOpen(false)} />
+      <EntradaForm entrada={entrada} proveedores={proveedores} productos={productos} onSuccess={() => setOpen(false)} />
     </EntityModal>
   )
 }
