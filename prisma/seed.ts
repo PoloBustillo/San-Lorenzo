@@ -58,33 +58,14 @@ async function main() {
   }
 
   for (const m of MATERIALES) {
-    await prisma.catalogoMaterial.upsert({
-      where: { nombre: m },
-      update: {},
-      create: { nombre: m },
-    })
-  }
-
-  for (const m of MEDIDAS) {
-    await prisma.catalogoMedida.upsert({
-      where: { nombre: m },
-      update: {},
-      create: { nombre: m },
-    })
-  }
-
-  const dbMateriales = await prisma.catalogoMaterial.findMany()
-  const dbMedidas = await prisma.catalogoMedida.findMany()
-
-  for (const mat of dbMateriales) {
-    for (const med of dbMedidas) {
-      const codigo = obtenerCodigoProducto(mat.nombre, med.nombre)
+    for (const med of MEDIDAS) {
+      const codigo = obtenerCodigoProducto(m, med)
       await prisma.catalogoProducto.upsert({
-        where: { materialId_medidaId: { materialId: mat.id, medidaId: med.id } },
+        where: { codigo },
         update: {},
         create: {
-          materialId: mat.id,
-          medidaId: med.id,
+          nombre: m,
+          medida: med,
           codigo,
           activo: true,
         },

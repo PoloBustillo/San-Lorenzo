@@ -16,7 +16,7 @@ import { ResponsiveTable } from '@/components/responsive-table'
 import { obtenerCodigoProducto } from '@/lib/constants'
 import { ESTATUS_INVENTARIO } from '@/lib/utils'
 import { cn } from '@/lib/utils'
-import { obtenerCatalogoMateriales } from '@/app/actions/catalogo'
+import { obtenerNombresMateriales } from '@/app/actions/catalogo'
 
 export default async function ArmadoPage({
   searchParams,
@@ -32,17 +32,15 @@ export default async function ArmadoPage({
     ...(params.medida && { medida: params.medida }),
   }
 
-  const [entradas, proveedores, catalogoMateriales] = await Promise.all([
+  const [entradas, proveedores, materiales] = await Promise.all([
     prisma.entrada.findMany({
       where,
       include: { proveedor: true },
       orderBy: [{ material: 'asc' }, { medida: 'asc' }, { fecha: 'asc' }],
     }),
     prisma.proveedor.findMany({ orderBy: { nombre: 'asc' } }),
-    obtenerCatalogoMateriales(),
+    obtenerNombresMateriales(),
   ])
-
-  const materiales = catalogoMateriales.map((m) => m.nombre)
 
   const agrupado = entradas.reduce(
     (acc, e) => {

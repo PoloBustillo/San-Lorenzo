@@ -5,19 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { obtenerConfiguracion, obtenerUmbrales } from '@/app/actions/configuracion'
 import { ConfigEmpresaForm } from './config-empresa-form'
 import { ConfigUmbralesForm } from './config-umbrales-form'
-import { obtenerCatalogoMateriales } from '@/app/actions/catalogo'
+import { obtenerNombresMateriales } from '@/app/actions/catalogo'
 
 export default async function ConfiguracionPage() {
   const session = await auth()
   if (session?.user.role !== Role.ADMIN) redirect('/')
 
-  const [config, umbrales, catalogoMateriales] = await Promise.all([
+  const [config, umbrales, materiales] = await Promise.all([
     obtenerConfiguracion(),
     obtenerUmbrales(),
-    obtenerCatalogoMateriales(),
+    obtenerNombresMateriales(),
   ])
 
-  const materiales = catalogoMateriales.map((m) => m.nombre)
   const umbralesMap = new Map(umbrales.map((u) => [u.material, u]))
 
   return (

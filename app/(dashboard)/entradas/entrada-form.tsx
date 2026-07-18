@@ -17,8 +17,8 @@ import { toast } from 'sonner'
 type Producto = {
   id: string
   codigo: string
-  material: { nombre: string }
-  medida: { nombre: string }
+  nombre: string
+  medida: string
 }
 
 export function EntradaForm({
@@ -45,7 +45,7 @@ export function EntradaForm({
 
   const matchingProducto = entrada
     ? productos.find(
-        (p) => p.material.nombre === entrada.material && p.medida.nombre === entrada.medida
+        (p) => p.nombre === entrada.material && p.medida === entrada.medida
       )
     : null
 
@@ -57,8 +57,8 @@ export function EntradaForm({
 
   async function handleSubmit(formData: FormData) {
     if (selectedProducto) {
-      formData.set('material', selectedProducto.material.nombre)
-      formData.set('medida', selectedProducto.medida.nombre)
+      formData.set('material', selectedProducto.nombre)
+      formData.set('medida', selectedProducto.medida)
     }
     startTransition(async () => {
       const result = isEditing
@@ -143,8 +143,8 @@ export function EntradaForm({
           </SelectContent>
         </Select>
       </div>
-      <input type="hidden" name="material" value={selectedProducto?.material.nombre ?? ''} />
-      <input type="hidden" name="medida" value={selectedProducto?.medida.nombre ?? ''} />
+      <input type="hidden" name="material" value={selectedProducto?.nombre ?? ''} />
+      <input type="hidden" name="medida" value={selectedProducto?.medida ?? ''} />
       <div className="space-y-2">
         <Label htmlFor="pesoKg">Peso KG</Label>
         <Input

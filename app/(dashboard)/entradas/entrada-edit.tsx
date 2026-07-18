@@ -9,8 +9,8 @@ import { EntradaForm } from './entrada-form'
 type Producto = {
   id: string
   codigo: string
-  material: { nombre: string }
-  medida: { nombre: string }
+  nombre: string
+  medida: string
 }
 
 export function EntradaEdit({

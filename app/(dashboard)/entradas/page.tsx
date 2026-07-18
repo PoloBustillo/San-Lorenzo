@@ -15,7 +15,7 @@ import { EntradaCreate } from './entrada-create'
 import { EntradaEdit } from './entrada-edit'
 import { EntradaDelete } from './entrada-delete'
 import { EntradaStatus } from './entrada-status'
-import { obtenerCatalogoMateriales, obtenerProductosActivos } from '@/app/actions/catalogo'
+import { obtenerProductosActivos, obtenerNombresMateriales } from '@/app/actions/catalogo'
 import { FilterBar } from '@/components/filter-bar'
 import { SortableHead } from '@/components/sortable-head'
 import { MobileCard, MobileCardField, MobileCardList } from '@/components/mobile-card'
@@ -68,7 +68,7 @@ export default async function EntradasPage({
       : {}),
   }
 
-  const [entradas, total, proveedores, todasEntradas, catalogoMateriales, productos] = await Promise.all([
+  const [entradas, total, proveedores, todasEntradas, productos, materiales] = await Promise.all([
     prisma.entrada.findMany({
       where,
       include: { proveedor: true },
@@ -83,11 +83,9 @@ export default async function EntradasPage({
       include: { proveedor: true },
       orderBy,
     }),
-    obtenerCatalogoMateriales(),
     obtenerProductosActivos(),
+    obtenerNombresMateriales(),
   ])
-
-  const materiales = catalogoMateriales.map((m) => m.nombre)
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 

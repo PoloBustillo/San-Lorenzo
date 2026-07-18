@@ -41,14 +41,18 @@ export function DashboardChart({
               />
               <YAxis tick={{ fontSize: 10 }} className="text-muted-foreground" />
               <Tooltip
+                wrapperStyle={{ zIndex: 50 }}
                 contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
+                  backgroundColor: 'hsl(var(--popover))',
+                  color: 'hsl(var(--popover-foreground))',
                   border: '1px solid hsl(var(--border))',
                   borderRadius: '8px',
                   fontSize: '12px',
+                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                 }}
-                formatter={(value, name) => [
-                  `${Number(value).toFixed(2)} KG`,
+                labelStyle={{ color: 'hsl(var(--popover-foreground))' }}
+                formatter={(value, name, entry) => [
+                  <span key="val" style={{ color: entry.color }}>{Number(value).toFixed(2)} KG</span>,
                   name === 'entradasKg' ? 'Entradas' : 'Salidas',
                 ]}
               />
@@ -95,13 +99,20 @@ export function InventarioChart({
                 className="text-muted-foreground"
               />
               <Tooltip
+                wrapperStyle={{ zIndex: 50 }}
                 contentStyle={{
-                  backgroundColor: 'hsl(var(--card))',
+                  backgroundColor: 'hsl(var(--popover))',
+                  color: 'hsl(var(--popover-foreground))',
                   border: '1px solid hsl(var(--border))',
                   borderRadius: '8px',
                   fontSize: '12px',
+                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
                 }}
-                formatter={(value) => [`${Number(value).toFixed(2)} KG`, 'Peso']}
+                labelStyle={{ color: 'hsl(var(--popover-foreground))' }}
+                formatter={(value, name, entry) => [
+                  <span key="val" style={{ color: entry.color }}>{Number(value).toFixed(2)} KG</span>,
+                  'Peso',
+                ]}
               />
               <Bar dataKey="kg" fill="#3b82f6" radius={[0, 4, 4, 0]} />
             </BarChart>

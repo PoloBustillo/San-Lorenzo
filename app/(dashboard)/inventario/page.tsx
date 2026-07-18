@@ -12,7 +12,7 @@ import { ResponsiveTable } from '@/components/responsive-table'
 import { TableExport } from '@/components/table-export'
 import { Pagination } from '@/components/pagination'
 import { ESTATUS_INVENTARIO } from '@/lib/utils'
-import { obtenerCatalogoMateriales } from '@/app/actions/catalogo'
+import { obtenerNombresMateriales } from '@/app/actions/catalogo'
 import { SortableHead } from '@/components/sortable-head'
 import { FilterBar } from '@/components/filter-bar'
 import { BarcodeCell } from '@/components/barcode-cell'
@@ -31,17 +31,15 @@ export default async function InventarioPage({
   const sortField = params.sortBy ?? 'codigo'
   const sortOrder = params.sortOrder === 'asc' ? 1 : -1
 
-  const [entradas, catalogoMateriales] = await Promise.all([
+  const [entradas, materiales] = await Promise.all([
     prisma.entrada.findMany({
       where: {
         estatus: { in: ESTATUS_INVENTARIO },
         ...(materialFilter && { material: materialFilter }),
       },
     }),
-    obtenerCatalogoMateriales(),
+    obtenerNombresMateriales(),
   ])
-
-  const materiales = catalogoMateriales.map((m) => m.nombre)
 
   const grupos = entradas.reduce(
     (acc, e) => {

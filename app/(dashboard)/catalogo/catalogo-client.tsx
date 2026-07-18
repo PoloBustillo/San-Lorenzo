@@ -26,19 +26,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
-  crearMaterial,
-  actualizarMaterial,
-  toggleMaterial,
-  crearMedida,
-  actualizarMedida,
-  toggleMedida,
+  crearProducto,
+  actualizarProducto,
   toggleProducto,
-  generarProductosDesdeCatalogo,
 } from '@/app/actions/catalogo'
 
-type Material = {
+type Producto = {
   id: string
   nombre: string
+  medida: string
+  codigo: string
   descripcion: string | null
   categoria: string | null
   imagenUrl: string | null
@@ -46,58 +43,47 @@ type Material = {
   activo: boolean
 }
 
-type Medida = {
-  id: string
-  nombre: string
-  activo: boolean
-}
-
-type Producto = {
-  id: string
-  codigo: string
-  activo: boolean
-  material: { id: string; nombre: string }
-  medida: { id: string; nombre: string }
-}
-
-function MaterialDialog({
+function ProductoDialog({
   open,
   onOpenChange,
-  material,
+  producto,
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
-  material?: Material
+  producto?: Producto
 }) {
   const [isPending, startTransition] = useTransition()
-  const [nombre, setNombre] = useState(material?.nombre ?? '')
-  const [descripcion, setDescripcion] = useState(material?.descripcion ?? '')
-  const [categoria, setCategoria] = useState(material?.categoria ?? '')
-  const [imagenUrl, setImagenUrl] = useState<string | null>(material?.imagenUrl ?? null)
-  const [sku, setSku] = useState(material?.sku ?? '')
+  const [nombre, setNombre] = useState(producto?.nombre ?? '')
+  const [medida, setMedida] = useState(producto?.medida ?? '')
+  const [descripcion, setDescripcion] = useState(producto?.descripcion ?? '')
+  const [categoria, setCategoria] = useState(producto?.categoria ?? '')
+  const [imagenUrl, setImagenUrl] = useState<string | null>(producto?.imagenUrl ?? null)
+  const [sku, setSku] = useState(producto?.sku ?? '')
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     startTransition(async () => {
       try {
-        if (material) {
-          await actualizarMaterial(material.id, {
+        if (producto) {
+          await actualizarProducto(producto.id, {
             nombre,
+            medida,
             descripcion: descripcion || null,
             categoria: categoria || null,
             imagenUrl: imagenUrl || null,
             sku: sku || null,
           })
-          toast.success('Material actualizado')
+          toast.success('Producto actualizado')
         } else {
-          await crearMaterial({
+          await crearProducto({
             nombre,
+            medida,
             descripcion: descripcion || null,
             categoria: categoria || null,
             imagenUrl: imagenUrl || null,
             sku: sku || null,
           })
-          toast.success('Material creado')
+          toast.success('Producto creado')
         }
         onOpenChange(false)
       } catch (err) {
@@ -110,111 +96,64 @@ function MaterialDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{material ? 'Editar material' : 'Nuevo material'}</DialogTitle>
+          <DialogTitle>{producto ? 'Editar producto' : 'Nuevo producto'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-2">
-        <div className="space-y-2">
-          <Label htmlFor="nombre">Nombre *</Label>
-          <Input
-            id="nombre"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            required
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="sku">SKU</Label>
-          <Input
-            id="sku"
-            value={sku}
-            onChange={(e) => setSku(e.target.value)}
-            placeholder="Auto-generado si está vacío"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="categoria">Categoría</Label>
-          <Input
-            id="categoria"
-            value={categoria}
-            onChange={(e) => setCategoria(e.target.value)}
-            placeholder="ej: Madera, Tacon, Leña"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="descripcion">Descripción</Label>
-          <Input
-            id="descripcion"
-            value={descripcion}
-            onChange={(e) => setDescripcion(e.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label>Imagen</Label>
-          <ImageUpload value={imagenUrl} onChange={setImagenUrl} />
-        </div>
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isPending}>
-            {isPending ? 'Guardando...' : material ? 'Actualizar' : 'Crear'}
-          </Button>
-        </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  )
-}
-
-function MedidaDialog({
-  open,
-  onOpenChange,
-  medida,
-}: {
-  open: boolean
-  onOpenChange: (v: boolean) => void
-  medida?: Medida
-}) {
-  const [isPending, startTransition] = useTransition()
-  const [nombre, setNombre] = useState(medida?.nombre ?? '')
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    startTransition(async () => {
-      try {
-        if (medida) {
-          await actualizarMedida(medida.id, nombre)
-          toast.success('Medida actualizada')
-        } else {
-          await crearMedida(nombre)
-          toast.success('Medida creada')
-        }
-        onOpenChange(false)
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Error')
-      }
-    })
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{medida ? 'Editar medida' : 'Nueva medida'}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="grid gap-4 py-2">
-        <div className="space-y-2">
-          <Label htmlFor="nombre">Nombre *</Label>
-          <Input
-            id="nombre"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            placeholder="ej: 0.9, 1.2, NA"
-            required
-          />
-        </div>
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isPending}>
-            {isPending ? 'Guardando...' : medida ? 'Actualizar' : 'Crear'}
-          </Button>
-        </div>
+          <div className="space-y-2">
+            <Label htmlFor="nombre">Material *</Label>
+            <Input
+              id="nombre"
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              placeholder="ej: TABLILLA, TACON, LENA"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="medida">Medida *</Label>
+            <Input
+              id="medida"
+              value={medida}
+              onChange={(e) => setMedida(e.target.value)}
+              placeholder="ej: 0.7, 1.2, NA"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="sku">SKU</Label>
+            <Input
+              id="sku"
+              value={sku}
+              onChange={(e) => setSku(e.target.value)}
+              placeholder="Opcional"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="categoria">Categoría</Label>
+            <Input
+              id="categoria"
+              value={categoria}
+              onChange={(e) => setCategoria(e.target.value)}
+              placeholder="ej: Madera, Tacon, Leña"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="descripcion">Descripción</Label>
+            <Input
+              id="descripcion"
+              value={descripcion}
+              onChange={(e) => setDescripcion(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Imagen</Label>
+            <ImageUpload value={imagenUrl} onChange={setImagenUrl} />
+          </div>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={isPending}>
+              {isPending ? 'Guardando...' : producto ? 'Actualizar' : 'Crear'}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
@@ -222,62 +161,27 @@ function MedidaDialog({
 }
 
 export function CatalogoClient({
-  materiales: initialMateriales,
-  medidas: initialMedidas,
   productos: initialProductos,
 }: {
-  materiales: Material[]
-  medidas: Medida[]
   productos: Producto[]
 }) {
-  const [materiales] = useState(initialMateriales)
-  const [medidas] = useState(initialMedidas)
   const [productos] = useState(initialProductos)
-  const [matDialogOpen, setMatDialogOpen] = useState(false)
-  const [medDialogOpen, setMedDialogOpen] = useState(false)
-  const [editingMat, setEditingMat] = useState<Material | undefined>()
-  const [editingMed, setEditingMed] = useState<Medida | undefined>()
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editing, setEditing] = useState<Producto | undefined>()
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
-  const [matFilter, setMatFilter] = useState('')
-  const [medFilter, setMedFilter] = useState('')
-  const [prodFilter, setProdFilter] = useState('')
+  const [filter, setFilter] = useState('')
 
-  const filteredMateriales = materiales.filter((m) =>
-    m.nombre.toLowerCase().includes(matFilter.toLowerCase())
-  )
-  const filteredMedidas = medidas.filter((m) =>
-    m.nombre.toLowerCase().includes(medFilter.toLowerCase())
-  )
-  const filteredProductos = productos.filter((p) =>
-    p.codigo.toLowerCase().includes(prodFilter.toLowerCase())
+  const filtered = productos.filter(
+    (p) =>
+      p.codigo.toLowerCase().includes(filter.toLowerCase()) ||
+      p.nombre.toLowerCase().includes(filter.toLowerCase()) ||
+      p.medida.toLowerCase().includes(filter.toLowerCase()) ||
+      (p.sku && p.sku.toLowerCase().includes(filter.toLowerCase())) ||
+      (p.categoria && p.categoria.toLowerCase().includes(filter.toLowerCase()))
   )
 
-  function handleToggleMaterial(id: string) {
-    startTransition(async () => {
-      try {
-        await toggleMaterial(id)
-        router.refresh()
-        toast.success('Material actualizado')
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Error')
-      }
-    })
-  }
-
-  function handleToggleMedida(id: string) {
-    startTransition(async () => {
-      try {
-        await toggleMedida(id)
-        router.refresh()
-        toast.success('Medida actualizada')
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Error')
-      }
-    })
-  }
-
-  function handleToggleProducto(id: string) {
+  function handleToggle(id: string) {
     startTransition(async () => {
       try {
         await toggleProducto(id)
@@ -289,35 +193,23 @@ export function CatalogoClient({
     })
   }
 
-  function handleGenerarProductos() {
-    startTransition(async () => {
-      try {
-        const created = await generarProductosDesdeCatalogo()
-        router.refresh()
-        toast.success(created > 0 ? `${created} productos generados` : 'No hay productos nuevos')
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : 'Error')
-      }
-    })
-  }
-
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Materiales</CardTitle>
+          <CardTitle>Productos</CardTitle>
           <div className="flex items-center gap-2">
             <Input
               placeholder="Buscar..."
-              value={matFilter}
-              onChange={(e) => setMatFilter(e.target.value)}
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
               className="w-40"
             />
             <Button
               size="sm"
               onClick={() => {
-                setEditingMat(undefined)
-                setMatDialogOpen(true)
+                setEditing(undefined)
+                setDialogOpen(true)
               }}
             >
               <Plus className="mr-1 h-3 w-3" />
@@ -331,7 +223,9 @@ export function CatalogoClient({
               <TableHeader>
                 <TableRow>
                   <TableHead>Imagen</TableHead>
-                  <TableHead>Nombre</TableHead>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Material</TableHead>
+                  <TableHead>Medida</TableHead>
                   <TableHead>SKU</TableHead>
                   <TableHead>Categoría</TableHead>
                   <TableHead>Estado</TableHead>
@@ -339,216 +233,59 @@ export function CatalogoClient({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredMateriales.length === 0 && (
+                {filtered.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
-                      No hay materiales.
+                    <TableCell colSpan={8} className="text-center text-muted-foreground">
+                      No hay productos.
                     </TableCell>
                   </TableRow>
                 )}
-                {filteredMateriales.map((m) => (
-                  <TableRow key={m.id}>
+                {filtered.map((p) => (
+                  <TableRow key={p.id}>
                     <TableCell>
-                      {m.imagenUrl ? (
-                        <img src={m.imagenUrl} alt="" className="h-10 w-10 rounded object-cover" />
+                      {p.imagenUrl ? (
+                        <img src={p.imagenUrl} alt="" className="h-10 w-10 rounded object-cover" />
                       ) : (
                         <div className="h-10 w-10 rounded bg-muted" />
                       )}
                     </TableCell>
-                    <TableCell className="font-medium">{m.nombre}</TableCell>
-                    <TableCell className="font-mono text-xs">
-                      {m.sku ?? `${m.nombre}*`}
-                    </TableCell>
-                    <TableCell>{m.categoria ?? '—'}</TableCell>
-                    <TableCell>
-                      <Badge variant={m.activo ? 'default' : 'secondary'}>
-                        {m.activo ? 'Activo' : 'Inactivo'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => {
-                            setEditingMat(m)
-                            setMatDialogOpen(true)
-                          }}
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => handleToggleMaterial(m.id)}
-                          disabled={isPending}
-                        >
-                          {m.activo ? (
-                            <ToggleRight className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <ToggleLeft className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </ResponsiveTable>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Medidas</CardTitle>
-          <div className="flex items-center gap-2">
-            <Input
-              placeholder="Buscar..."
-              value={medFilter}
-              onChange={(e) => setMedFilter(e.target.value)}
-              className="w-40"
-            />
-            <Button
-              size="sm"
-              onClick={() => {
-                setEditingMed(undefined)
-                setMedDialogOpen(true)
-              }}
-            >
-              <Plus className="mr-1 h-3 w-3" />
-              Nueva
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveTable>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="w-24 text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredMedidas.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground">
-                      No hay medidas.
-                    </TableCell>
-                  </TableRow>
-                )}
-                {filteredMedidas.map((m) => (
-                  <TableRow key={m.id}>
-                    <TableCell className="font-medium">{m.nombre}</TableCell>
-                    <TableCell>
-                      <Badge variant={m.activo ? 'default' : 'secondary'}>
-                        {m.activo ? 'Activa' : 'Inactiva'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => {
-                            setEditingMed(m)
-                            setMedDialogOpen(true)
-                          }}
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7"
-                          onClick={() => handleToggleMedida(m.id)}
-                          disabled={isPending}
-                        >
-                          {m.activo ? (
-                            <ToggleRight className="h-4 w-4 text-green-600" />
-                          ) : (
-                            <ToggleLeft className="h-4 w-4 text-muted-foreground" />
-                          )}
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </ResponsiveTable>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Productos (Material × Medida)</CardTitle>
-          <div className="flex items-center gap-2">
-            <Input
-              placeholder="Buscar..."
-              value={prodFilter}
-              onChange={(e) => setProdFilter(e.target.value)}
-              className="w-40"
-            />
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleGenerarProductos}
-              disabled={isPending}
-            >
-              Generar todos
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveTable>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Código</TableHead>
-                  <TableHead>Material</TableHead>
-                  <TableHead>Medida</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="w-24 text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredProductos.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
-                      No hay productos. Crea materiales y medidas, luego usa &quot;Generar todos&quot;.
-                    </TableCell>
-                  </TableRow>
-                )}
-                {filteredProductos.map((p) => (
-                  <TableRow key={p.id}>
                     <TableCell className="font-mono text-sm font-medium">{p.codigo}</TableCell>
-                    <TableCell>{p.material.nombre}</TableCell>
-                    <TableCell>{p.medida.nombre}</TableCell>
+                    <TableCell className="font-medium">{p.nombre}</TableCell>
+                    <TableCell>{p.medida}</TableCell>
+                    <TableCell className="font-mono text-xs">{p.sku ?? '—'}</TableCell>
+                    <TableCell>{p.categoria ?? '—'}</TableCell>
                     <TableCell>
                       <Badge variant={p.activo ? 'default' : 'secondary'}>
                         {p.activo ? 'Activo' : 'Inactivo'}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => handleToggleProducto(p.id)}
-                        disabled={isPending}
-                      >
-                        {p.activo ? (
-                          <ToggleRight className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <ToggleLeft className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => {
+                            setEditing(p)
+                            setDialogOpen(true)
+                          }}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => handleToggle(p.id)}
+                          disabled={isPending}
+                        >
+                          {p.activo ? (
+                            <ToggleRight className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <ToggleLeft className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -558,17 +295,11 @@ export function CatalogoClient({
         </CardContent>
       </Card>
 
-      <MaterialDialog
-        key={editingMat?.id ?? 'new-material'}
-        open={matDialogOpen}
-        onOpenChange={setMatDialogOpen}
-        material={editingMat}
-      />
-      <MedidaDialog
-        key={editingMed?.id ?? 'new-medida'}
-        open={medDialogOpen}
-        onOpenChange={setMedDialogOpen}
-        medida={editingMed}
+      <ProductoDialog
+        key={editing?.id ?? 'new-producto'}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        producto={editing}
       />
     </div>
   )

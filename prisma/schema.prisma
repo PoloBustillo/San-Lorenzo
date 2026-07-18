@@ -93,37 +93,18 @@ model AuditLog {
   createdAt DateTime @default(now())
 }
 
-model CatalogoMaterial {
+model CatalogoProducto {
   id          String   @id @default(uuid())
-  nombre      String   @unique
+  nombre      String
+  medida      String
+  codigo      String   @unique
   descripcion String?
   categoria   String?
   imagenUrl   String?
   sku         String?
   activo      Boolean  @default(true)
   createdAt   DateTime @default(now())
-  productos   CatalogoProducto[]
-}
+  entradas    Entrada[]
 
-model CatalogoMedida {
-  id        String   @id @default(uuid())
-  nombre    String   @unique
-  activo    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  productos CatalogoProducto[]
-}
-
-model CatalogoProducto {
-  id         String  @id @default(uuid())
-  materialId String
-  medidaId   String
-  codigo     String  @unique
-  activo     Boolean @default(true)
-  createdAt  DateTime @default(now())
-
-  material CatalogoMaterial @relation(fields: [materialId], references: [id])
-  medida   CatalogoMedida   @relation(fields: [medidaId], references: [id])
-  entradas Entrada[]
-
-  @@unique([materialId, medidaId])
+  @@unique([nombre, medida])
 }
