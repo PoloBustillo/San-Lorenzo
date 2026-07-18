@@ -53,6 +53,7 @@ function ProductoDialog({
   producto?: Producto
 }) {
   const [isPending, startTransition] = useTransition()
+  const router = useRouter()
   const [nombre, setNombre] = useState(producto?.nombre ?? '')
   const [medida, setMedida] = useState(producto?.medida ?? '')
   const [descripcion, setDescripcion] = useState(producto?.descripcion ?? '')
@@ -74,6 +75,7 @@ function ProductoDialog({
             sku: sku || null,
           })
           toast.success('Producto actualizado')
+          router.refresh()
         } else {
           await crearProducto({
             nombre,
@@ -84,6 +86,7 @@ function ProductoDialog({
             sku: sku || null,
           })
           toast.success('Producto creado')
+          router.refresh()
         }
         onOpenChange(false)
       } catch (err) {
@@ -161,11 +164,10 @@ function ProductoDialog({
 }
 
 export function CatalogoClient({
-  productos: initialProductos,
+  productos,
 }: {
   productos: Producto[]
 }) {
-  const [productos] = useState(initialProductos)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Producto | undefined>()
   const [isPending, startTransition] = useTransition()

@@ -40,9 +40,11 @@ export async function obtenerNombresMateriales() {
 export async function crearProducto(data: ProductoData) {
   const session = await checkAuth()
   if (session.user.role !== 'ADMIN') throw new Error('No autorizado')
-  const codigo = obtenerCodigoProducto(data.nombre, data.medida)
+  const nombre = data.nombre.trim()
+  const medida = data.medida.trim()
+  const codigo = obtenerCodigoProducto(nombre, medida)
   await prisma.catalogoProducto.create({
-    data: { ...data, codigo },
+    data: { ...data, nombre, medida, codigo },
   })
   revalidatePath('/catalogo')
 }
@@ -50,10 +52,22 @@ export async function crearProducto(data: ProductoData) {
 export async function actualizarProducto(id: string, data: ProductoData) {
   const session = await checkAuth()
   if (session.user.role !== 'ADMIN') throw new Error('No autorizado')
-  const codigo = obtenerCodigoProducto(data.nombre, data.medida)
+
+  const existing = await prisma.catalogoProducto.findUnique({ where: { id } })
+  if (!existing) throw new Error('Producto no encontrado')
+
+  const nuevoCodigo = obtenerCodigoProducto(data.nombre.trim(), data.medida.trim())
+
+  if (existing.codigo !== nuevoCodigo) {
+    const conflict = await prisma.catalogoProducto.findUnique({ where: { codigo: nuevoCodigo } })
+    if (conflict && conflict.id !== id) {
+      throw new Error(`Ya existe un producto con el código "${nuevoCodigo}"`)
+    }
+  }
+
   await prisma.catalogoProducto.update({
     where: { id },
-    data: { ...data, codigo },
+    data: { ...data, nombre: data.nombre.trim(), medida: data.medida.trim(), codigo: nuevoCodigo },
   })
   revalidatePath('/catalogo')
 }
