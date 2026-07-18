@@ -12,6 +12,90 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 
+function ChartTooltipContent({
+  active,
+  payload,
+  label,
+  labelFormatter,
+  valueFormatter,
+}: {
+  active?: boolean
+  payload?: Array<{ name: string; value: number; color: string; dataKey: string }>
+  label?: string
+  labelFormatter?: (label: string) => string
+  valueFormatter?: (value: number, name: string) => string
+}) {
+  if (!active || !payload?.length) return null
+
+  return (
+    <div
+      style={{
+        backgroundColor: 'hsl(var(--popover))',
+        color: 'hsl(var(--popover-foreground))',
+        border: '1px solid hsl(var(--border))',
+        borderRadius: '8px',
+        padding: '8px 12px',
+        fontSize: '12px',
+        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+        zIndex: 50,
+      }}
+    >
+      {label && (
+        <p style={{ color: 'hsl(var(--popover-foreground))', marginBottom: 4, fontWeight: 500 }}>
+          {labelFormatter ? labelFormatter(label) : label}
+        </p>
+      )}
+      {payload.map((entry) => (
+        <p key={entry.dataKey} style={{ color: 'hsl(var(--popover-foreground))', margin: '2px 0' }}>
+          <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', backgroundColor: entry.color, marginRight: 6 }} />
+          <span style={{ color: 'hsl(var(--muted-foreground))' }}>{entry.name === 'entradasKg' ? 'Entradas' : entry.name === 'salidasKg' ? 'Salidas' : entry.name}:</span>{' '}
+          <span style={{ fontWeight: 600 }}>{valueFormatter ? valueFormatter(entry.value, entry.name) : `${entry.value.toFixed(2)} KG`}</span>
+        </p>
+      ))}
+    </div>
+  )
+}
+
+function InventarioTooltipContent({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean
+  payload?: Array<{ name: string; value: number; color: string; dataKey: string }>
+  label?: string
+}) {
+  if (!active || !payload?.length) return null
+
+  return (
+    <div
+      style={{
+        backgroundColor: 'hsl(var(--popover))',
+        color: 'hsl(var(--popover-foreground))',
+        border: '1px solid hsl(var(--border))',
+        borderRadius: '8px',
+        padding: '8px 12px',
+        fontSize: '12px',
+        boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+        zIndex: 50,
+      }}
+    >
+      {label && (
+        <p style={{ color: 'hsl(var(--popover-foreground))', marginBottom: 4, fontWeight: 500 }}>
+          {label}
+        </p>
+      )}
+      {payload.map((entry) => (
+        <p key={entry.dataKey} style={{ color: 'hsl(var(--popover-foreground))', margin: '2px 0' }}>
+          <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', backgroundColor: entry.color, marginRight: 6 }} />
+          <span style={{ color: 'hsl(var(--muted-foreground))' }}>Peso:</span>{' '}
+          <span style={{ fontWeight: 600 }}>{entry.value.toFixed(2)} KG</span>
+        </p>
+      ))}
+    </div>
+  )
+}
+
 export function DashboardChart({
   data,
 }: {
@@ -41,20 +125,7 @@ export function DashboardChart({
               />
               <YAxis tick={{ fontSize: 10 }} className="text-muted-foreground" />
               <Tooltip
-                wrapperStyle={{ zIndex: 50 }}
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--popover))',
-                  color: 'hsl(var(--popover-foreground))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                }}
-                labelStyle={{ color: 'hsl(var(--popover-foreground))' }}
-                formatter={(value, name, entry) => [
-                  <span key="val" style={{ color: entry.color }}>{Number(value).toFixed(2)} KG</span>,
-                  name === 'entradasKg' ? 'Entradas' : 'Salidas',
-                ]}
+                content={<ChartTooltipContent />}
               />
               <Legend
                 formatter={(value: string) =>
@@ -99,20 +170,7 @@ export function InventarioChart({
                 className="text-muted-foreground"
               />
               <Tooltip
-                wrapperStyle={{ zIndex: 50 }}
-                contentStyle={{
-                  backgroundColor: 'hsl(var(--popover))',
-                  color: 'hsl(var(--popover-foreground))',
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px',
-                  fontSize: '12px',
-                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                }}
-                labelStyle={{ color: 'hsl(var(--popover-foreground))' }}
-                formatter={(value, name, entry) => [
-                  <span key="val" style={{ color: entry.color }}>{Number(value).toFixed(2)} KG</span>,
-                  'Peso',
-                ]}
+                content={<InventarioTooltipContent />}
               />
               <Bar dataKey="kg" fill="#3b82f6" radius={[0, 4, 4, 0]} />
             </BarChart>
